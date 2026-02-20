@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom tweaks to make it look expensive */
+body {
+  background-color: #f0f2f5; /* Light gray background like Facebook/Shopee */
+  color: #1f2937;
+}
+
+.islamic-pattern {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1; /* Pushes background BEHIND everything */
+  opacity: 0.03; /* Makes it very subtle */
+  background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23006837' fill-opacity='1'%3E%3Cpath d='M40 80c22.09 0 40-17.91 40-40S62.09 0 40 0 0 17.91 0 40s17.91 40 40 40zm0-10c16.57 0 30-13.43 30-30S56.57 10 40 10 10 23.43 10 40s13.43 30 30 30z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Hides scrollbars for a cleaner look */
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
