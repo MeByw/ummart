@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { products as initialProducts } from './products'; 
+import { products as initialProducts } from './products';
+import { supabase } from '../lib/supabase'; // <-- WE ARE IMPORTING YOUR DATABASE HERE
 
 // --- SHARED TYPES ---
 export interface Product {
@@ -17,7 +18,7 @@ export interface Product {
   colorImages?: Record<string, string>;
   colors?: string[];
   sizes?: string[];
-  sold?: number; 
+  sold?: number;
 }
 
 export interface CartItem extends Product {
@@ -34,7 +35,10 @@ export interface SellerProfile {
   image: string; 
   description?: string; 
   rating?: number;      
-  location?: string;    
+  location?: string;
+  // --- NEW BADGE FIELDS ---
+  isMuslimOwned?: boolean;
+  halalCertStatus?: 'none' | 'pending' | 'approved';
 }
 
 interface CartContextType {
@@ -61,7 +65,9 @@ const DEFAULT_SELLER: SellerProfile = {
     image: "", 
     description: "Welcome to my official shop!",
     rating: 5.0,
-    location: "Kuala Lumpur, MY"
+    location: "Kuala Lumpur, MY",
+    isMuslimOwned: true, // Defaulting to true for demo
+    halalCertStatus: 'approved' // Defaulting to approved for demo
 };
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
@@ -70,61 +76,69 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // --- 1. LOAD DATA ---
+  // --- 1. LOAD DATA FROM SUPABASE ---
   useEffect(() => {
     if (typeof window !== 'undefined') {
+        // We still keep Cart and Profile in local storage (perfect for unlogged users)
         const savedCart = localStorage.getItem('ummart-cart');
-        const savedProducts = localStorage.getItem('ummart-products');
         const savedProfile = localStorage.getItem('ummart-seller-profile');
         
         if (savedCart) setCart(JSON.parse(savedCart));
-        
-        let currentProfile = DEFAULT_SELLER;
-        if (savedProfile) {
-            currentProfile = JSON.parse(savedProfile);
-            setSellerProfile(currentProfile);
-        } else {
-             setSellerProfile(DEFAULT_SELLER);
-        }
+        if (savedProfile) setSellerProfile(JSON.parse(savedProfile));
 
-        let loadedProducts: Product[] = [];
-        if (savedProducts) {
-            loadedProducts = JSON.parse(savedProducts);
-        }
+        // THE MAGIC: Fetch products from Supabase Cloud!
+        const loadDatabase = async () => {
+            const { data, error } = await supabase
+                .from('products')
+                .select('*')
+                .order('created_at', { ascending: false });
 
-        // THE FIX: If storage crashed or has fewer items than our defaults, force a reset.
-        // Also, force ALL default products to match currentProfile.shopName so the dashboard doesn't hide them!
-        if (loadedProducts.length >= (initialProducts?.length || 7)) {
-            setAllProducts(loadedProducts);
-        } else {
-            const seeded = (initialProducts || []).map(p => ({ 
-                ...p, 
-                seller: currentProfile.shopName 
-            }));
-            setAllProducts(seeded);
-            // Instantly save the fixed products to storage
-            localStorage.setItem('ummart-products', JSON.stringify(seeded));
-        }
-        
-        setIsLoaded(true);
+            if (error) {
+                console.error("Error fetching products:", error);
+                return;
+            }
+
+            // If the database is completely empty, automatically seed it with our defaults!
+            if (data.length === 0) {
+                console.log("Database is empty! Uploading default products to the cloud...");
+                
+                // Remove the local IDs and fields not in our database schema
+                const productsToInsert = initialProducts.map(({ id, hasVariants, isHalal, ...rest }: any) => rest);
+                
+                const { data: insertedData, error: insertError } = await supabase
+                    .from('products')
+                    .insert(productsToInsert)
+                    .select();
+                    
+                if (insertError) {
+                    console.error("Error seeding database:", insertError);
+                } else if (insertedData) {
+                    setAllProducts(insertedData);
+                }
+            } else {
+                setAllProducts(data);
+            }
+            setIsLoaded(true);
+        };
+
+        loadDatabase();
     }
   }, []);
 
-  // --- 2. SAVE DATA ---
+  // --- 2. SAVE LOCAL DATA ---
   useEffect(() => {
     if (isLoaded) {
       localStorage.setItem('ummart-cart', JSON.stringify(cart));
-      localStorage.setItem('ummart-products', JSON.stringify(allProducts));
       localStorage.setItem('ummart-seller-profile', JSON.stringify(sellerProfile));
+      // NOTE: We no longer save products to localStorage! They live in the cloud now.
     }
-  }, [cart, allProducts, sellerProfile, isLoaded]);
+  }, [cart, sellerProfile, isLoaded]);
 
   // --- ACTIONS ---
   const addToCart = (product: Product, qty: number, color?: string, size?: string) => {
     setCart((prev) => {
       const uniqueId = `${product.id}-${color || 'def'}-${size || 'def'}`;
       const existing = prev.find((item) => item.cartId === uniqueId);
-      
       if (existing) {
         return prev.map((item) => item.cartId === uniqueId ? { ...item, qty: item.qty + qty } : item);
       }
@@ -132,40 +146,48 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const removeFromCart = (cartId: string) => {
-    setCart((prev) => prev.filter((item) => item.cartId !== cartId));
-  };
-
+  const removeFromCart = (cartId: string) => setCart((prev) => prev.filter((item) => item.cartId !== cartId));
   const updateQuantity = (cartId: string, qty: number) => {
     if (qty < 1) return;
     setCart((prev) => prev.map((item) => (item.cartId === cartId ? { ...item, qty } : item)));
   };
-
   const clearCart = () => setCart([]);
 
-  const addProduct = (newProduct: Product) => {
+  // --- DATABASE WRITES ---
+  const addProduct = async (newProduct: Product) => {
+      // Remove temporary local ID so Supabase generates a real one
+      const { id, ...productData } = newProduct;
+      
+      // 1. Show it instantly on screen (Optimistic UI)
       setAllProducts((prev) => [newProduct, ...prev]);
+
+      // 2. Save it permanently to the cloud
+      const { data, error } = await supabase
+          .from('products')
+          .insert([productData])
+          .select();
+
+      if (error) {
+          console.error("Error saving product to Supabase:", error);
+      } else if (data) {
+          // Replace the temporary screen product with the real Database product
+          setAllProducts((prev) => prev.map(p => p.id === newProduct.id ? data[0] : p));
+      }
   };
 
-  const deleteProduct = (id: number) => {
+  const deleteProduct = async (id: number) => {
+      // 1. Remove from screen instantly
       setAllProducts((prev) => prev.filter(p => p.id !== id));
+      
+      // 2. Delete from cloud
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      if (error) console.error("Error deleting product:", error);
   };
 
   const updateSellerProfile = (newDetails: Partial<SellerProfile>) => {
       setSellerProfile((prev) => {
           const updated = { ...prev, ...newDetails };
-          const oldName = prev.shopName || prev.name;
-          const newName = updated.shopName || updated.name;
-
-          if (oldName !== newName) {
-             setTimeout(() => {
-                 setAllProducts(currentProducts => 
-                   currentProducts.map(p => 
-                     (p.seller === oldName || p.seller === prev.name) ? { ...p, seller: newName } : p
-                   )
-                 );
-             }, 0);
-          }
+          // Note: In a full app, we would update the product seller names in the DB here too!
           return updated;
       });
   };

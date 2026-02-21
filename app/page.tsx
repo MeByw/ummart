@@ -6,12 +6,13 @@ import ProductCard from '@/components/ProductCard';
 import { useCart } from './providers';
 import { 
   Menu, Smartphone, Shirt, Coffee, BookOpen, Home, Gift, 
-  ShieldCheck, Heart, Calculator, Utensils, Award, ChevronRight
+  ShieldCheck, Heart, Calculator, Utensils, Award, ChevronRight, ShoppingBag
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function HomePage() {
-  const { allProducts } = useCart(); 
+  // WE INCLUDED sellerProfile HERE!
+  const { allProducts, sellerProfile } = useCart(); 
   const [activeCategory, setActiveCategory] = useState('Semua');
 
   // Sidebar Categories (Matches exactly with Add Product page)
@@ -76,6 +77,44 @@ export default function HomePage() {
 
         {/* === RIGHT MAIN FEED === */}
         <main className="flex-1 min-w-0">
+
+          {/* === NEW: STORE PROFILE & TRUST BADGES BANNER === */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8 flex flex-col md:flex-row items-center gap-6">
+            <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-md flex-shrink-0">
+              {sellerProfile.image ? (
+                <img src={sellerProfile.image} alt={sellerProfile.shopName} className="w-full h-full object-cover" />
+              ) : (
+                <ShoppingBag className="text-gray-400" size={32} />
+              )}
+            </div>
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="text-2xl font-black text-gray-900 mb-1">{sellerProfile.shopName}</h1>
+              <p className="text-gray-500 text-sm mb-4">{sellerProfile.description || "Selamat datang ke kedai rasmi kami!"}</p>
+              
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
+                {sellerProfile.isMuslimOwned && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 text-[#0F6937] rounded-full text-xs font-bold shadow-sm">
+                    <Award size={14} />
+                    Pemilikan Muslim (BMF)
+                  </div>
+                )}
+                
+                {sellerProfile.halalCertStatus === 'approved' && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 text-[#0F6937] rounded-full text-xs font-bold shadow-sm">
+                    <ShieldCheck size={14} />
+                    Sijil Halal JAKIM
+                  </div>
+                )}
+
+                {sellerProfile.halalCertStatus === 'pending' && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-full text-xs font-bold shadow-sm">
+                    <ShieldCheck size={14} />
+                    Permohonan Halal (Dalam Proses)
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
           
           {/* 1. HERO BANNER */}
           <div className="relative bg-[#0F6937] rounded-xl overflow-hidden shadow-md h-48 md:h-64 mb-8 flex items-center">
