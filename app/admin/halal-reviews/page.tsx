@@ -1,266 +1,184 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
+import React, { useEffect, useState } from 'react';
+import Navbar from '@/components/Navbar';
 import { supabase } from '@/lib/supabase';
-import { 
-  Search, FileText, CheckCircle, XCircle, Eye, 
-  Building2, Clock, ShieldAlert, ArrowLeft, Download, Loader2 
-} from 'lucide-react';
+import { CheckCircle, XCircle, FileText, Clock, ExternalLink, ShieldCheck, LockKeyhole, AlertCircle } from 'lucide-react';
 
-export default function AdminHalalDashboard() {
+export default function HalalAdminReviews() {
+  // --- AUTHENTICATION STATE ---
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  // Set your secret admin password here!
+  const ADMIN_PASSWORD = "1234567890";
+
+  // --- DATA STATE ---
   const [applications, setApplications] = useState<any[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedApp, setSelectedApp] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Start false until authenticated
 
-  // --- CONNECT TO SUPABASE ---
-  useEffect(() => {
-    fetchApplications();
-  }, []);
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordInput === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      fetchApplications(); // Only fetch data AFTER logging in
+    } else {
+      setAuthError('Katalaluan tidak sah. Sila cuba lagi.');
+      setPasswordInput('');
+    }
+  };
 
   const fetchApplications = async () => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('halal_applications')
-        .select('*')
-        .order('created_at', { ascending: false });
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('halal_applications')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setApplications(data || []);
-    } catch (err) {
-      console.error("Error fetching applications:", err);
-    } finally {
-      setIsLoading(false);
+    if (error) console.error("Error fetching applications:", error);
+    else setApplications(data || []);
+    setLoading(false);
+  };
+
+  const updateStatus = async (id: string, newStatus: string) => {
+    const { error } = await supabase
+      .from('halal_applications')
+      .update({ status: newStatus })
+      .eq('id', id);
+
+    if (error) {
+      alert("Gagal mengemaskini status!");
+    } else {
+      setApplications(prev => prev.map(app => app.id === id ? { ...app, status: newStatus } : app));
     }
   };
 
-  // Status Badge Color Helper
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Pending Review': return 'bg-amber-100 text-amber-700 border-amber-200';
-      case 'Ready for JAKIM': return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'Certified': return 'bg-green-100 text-green-700 border-green-200';
-      case 'Revisions Needed': return 'bg-red-100 text-red-700 border-red-200';
-      default: return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
-  };
+  // --- LOGIN SCREEN UI ---
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FA] flex flex-col selection:bg-[#006837] selection:text-white">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="bg-white p-8 md:p-10 rounded-3xl shadow-xl border border-gray-100 max-w-md w-full animate-in zoom-in-95">
+            <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <LockKeyhole size={40} />
+            </div>
+            <h1 className="text-2xl font-black text-center text-gray-900 mb-2">Akses Admin</h1>
+            <p className="text-center text-gray-500 mb-8 text-sm">Sila masukkan katalaluan admin untuk mengurus permohonan Halal.</p>
+            
+            {authError && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-6 text-sm font-bold flex items-center gap-2">
+                <AlertCircle size={18} /> {authError}
+              </div>
+            )}
 
-  // --- UPDATE SUPABASE STATUS ---
-  const updateStatus = async (id: number, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('halal_applications')
-        .update({ status: newStatus })
-        .eq('id', id);
-
-      if (error) throw error;
-
-      // Update local state instantly
-      setApplications(applications.map(app => 
-        app.id === id ? { ...app, status: newStatus } : app
-      ));
-      
-      setSelectedApp(null); // Close modal
-      alert(`Berjaya dikemaskini kepada: ${newStatus}`);
-    } catch (err) {
-      console.error("Failed to update status", err);
-      alert("Gagal mengemaskini status.");
-    }
-  };
-
-  const filteredApps = applications.filter(app => 
-    app.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    app.ssm_number?.includes(searchTerm)
-  );
-
-  return (
-    <div className="min-h-screen bg-gray-50 font-sans selection:bg-[#0F6937] selection:text-white pb-20">
-      
-      {/* Top Admin Navbar */}
-      <div className="bg-[#0F6937] text-white p-4 shadow-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto flex items-center gap-4">
-          <Link href="/" className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition">
-            <ArrowLeft size={20} />
-          </Link>
-          <div>
-            <h1 className="text-xl font-black flex items-center gap-2">
-              <ShieldAlert size={24} /> UMMart Admin Center
-            </h1>
-            <p className="text-xs text-green-100 opacity-80">Pengurusan Pra-Kelayakan Halal</p>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <input 
+                type="password" 
+                value={passwordInput}
+                onChange={(e) => setPasswordInput(e.target.value)}
+                placeholder="Masukkan Katalaluan..." 
+                className="w-full bg-gray-50 border border-gray-200 text-center text-lg tracking-widest rounded-xl px-4 py-4 focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all"
+                autoFocus
+              />
+              <button 
+                type="submit" 
+                disabled={!passwordInput}
+                className="w-full bg-gray-900 text-white py-4 rounded-xl font-bold hover:bg-black transition-all shadow-lg disabled:opacity-50"
+              >
+                Log Masuk
+              </button>
+            </form>
           </div>
         </div>
       </div>
+    );
+  }
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        
-        {/* Stats Row */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-            <p className="text-gray-500 text-sm font-bold mb-1">Total Permohonan</p>
-            <p className="text-3xl font-black text-gray-900">{applications.length}</p>
+  // --- ADMIN DASHBOARD UI ---
+  return (
+    <div className="min-h-screen bg-gray-50 pb-20">
+      <Navbar />
+      
+      <div className="max-w-7xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <ShieldCheck size={36} className="text-gray-900" />
+            <div>
+              <h1 className="text-2xl md:text-3xl font-black text-gray-900">Semakan Halal JAKIM</h1>
+              <p className="text-sm font-medium text-gray-500 mt-1">Panel Pengurusan UMMart Admin</p>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-amber-500">
-            <p className="text-gray-500 text-sm font-bold mb-1">Perlu Disemak</p>
-            <p className="text-3xl font-black text-amber-600">
-              {applications.filter(a => a.status === 'Pending Review').length}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 border-l-4 border-l-blue-500">
-            <p className="text-gray-500 text-sm font-bold mb-1">Sedia (JAKIM)</p>
-            <p className="text-3xl font-black text-blue-600">
-              {applications.filter(a => a.status === 'Ready for JAKIM').length}
-            </p>
-          </div>
+          <button onClick={() => setIsAuthenticated(false)} className="text-sm font-bold text-red-600 bg-red-50 px-4 py-2 rounded-lg hover:bg-red-100 transition">
+            Log Keluar
+          </button>
         </div>
 
-        {/* Action Bar */}
-        <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-          <h2 className="text-xl font-bold text-gray-900">Senarai Syarikat</h2>
-          <div className="relative w-full md:w-72">
-            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-            <input 
-              type="text" 
-              placeholder="Cari Syarikat atau SSM..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-[#0F6937] shadow-sm"
-            />
-          </div>
-        </div>
-
-        {/* Data Table */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
-                  <th className="p-4 font-bold">Syarikat & Kategori</th>
-                  <th className="p-4 font-bold">No SSM</th>
-                  <th className="p-4 font-bold">Tarikh Mohon</th>
-                  <th className="p-4 font-bold">Status</th>
-                  <th className="p-4 font-bold text-center">Tindakan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {isLoading ? (
+        <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+          {loading ? (
+            <div className="p-20 text-center flex flex-col items-center justify-center text-gray-400">
+              <div className="w-8 h-8 border-4 border-gray-200 border-t-[#006837] rounded-full animate-spin mb-4"></div>
+              <p className="font-bold">Memuatkan pangkalan data...</p>
+            </div>
+          ) : applications.length === 0 ? (
+            <div className="p-20 text-center flex flex-col items-center justify-center text-gray-400">
+              <CheckCircle size={48} className="mb-4 text-green-200" />
+              <p className="font-bold text-lg text-gray-900">Tiada permohonan baru</p>
+              <p>Semua permohonan telah disemak.</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50/80 border-b border-gray-100 text-gray-500 text-xs uppercase font-bold tracking-wider">
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-gray-500">
-                      <Loader2 size={24} className="animate-spin mx-auto text-[#0F6937] mb-2" /> Memuat turun data...
-                    </td>
+                    <th className="p-4 pl-6">Syarikat & SSM</th>
+                    <th className="p-4">Kategori</th>
+                    <th className="p-4">Dokumen Sokongan</th>
+                    <th className="p-4">Status</th>
+                    <th className="p-4 text-right pr-6">Tindakan Admin</th>
                   </tr>
-                ) : filteredApps.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="p-8 text-center text-gray-500">Tiada permohonan dijumpai.</td>
-                  </tr>
-                ) : (
-                  filteredApps.map((app) => (
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {applications.map((app) => (
                     <tr key={app.id} className="hover:bg-gray-50/50 transition">
+                      <td className="p-4 pl-6">
+                        <p className="font-bold text-gray-900 text-base">{app.company_name}</p>
+                        <p className="text-sm text-gray-500">{app.ssm_number}</p>
+                        <p className="text-xs font-bold text-[#006837] mt-1.5 bg-green-50 w-max px-2 py-0.5 rounded">ID: {app.seller_id}</p>
+                      </td>
+                      <td className="p-4"><span className="text-sm font-medium text-gray-700">{app.category}</span></td>
+                      <td className="p-4 space-y-2">
+                        <a href={app.documents_url?.ssm} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-800 transition">
+                          <FileText size={16} /> Sijil SSM <ExternalLink size={12} />
+                        </a>
+                        <a href={app.documents_url?.ingredients} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-800 transition">
+                          <FileText size={16} /> Senarai Ramuan <ExternalLink size={12} />
+                        </a>
+                      </td>
                       <td className="p-4">
-                        <div className="font-bold text-gray-900 flex items-center gap-2">
-                          <Building2 size={16} className="text-gray-400"/> {app.company_name}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-1">{app.category}</div>
+                        {app.status === 'Pending Review' && <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-700 px-3 py-1 rounded-full text-xs font-bold border border-amber-200"><Clock size={14} /> Menunggu</span>}
+                        {app.status === 'Approved' && <span className="inline-flex items-center gap-1.5 bg-green-50 text-[#006837] px-3 py-1 rounded-full text-xs font-bold border border-green-200"><CheckCircle size={14} /> Diluluskan</span>}
+                        {app.status === 'Rejected' && <span className="inline-flex items-center gap-1.5 bg-red-50 text-red-700 px-3 py-1 rounded-full text-xs font-bold border border-red-200"><XCircle size={14} /> Ditolak</span>}
                       </td>
-                      <td className="p-4 text-sm font-medium text-gray-700">{app.ssm_number}</td>
-                      <td className="p-4 text-sm text-gray-500 flex items-center gap-1.5 mt-2">
-                        <Clock size={14}/> {new Date(app.created_at).toLocaleDateString()}
-                      </td>
-                      <td className="p-4">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold border ${getStatusColor(app.status)}`}>
-                          {app.status}
-                        </span>
-                      </td>
-                      <td className="p-4 text-center">
-                        <button 
-                          onClick={() => setSelectedApp(app)}
-                          className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition inline-flex items-center gap-1 text-sm font-bold"
-                        >
-                          <Eye size={16} /> Semak
-                        </button>
+                      <td className="p-4 text-right pr-6">
+                        {app.status === 'Pending Review' ? (
+                          <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => updateStatus(app.id, 'Approved')} className="bg-[#006837] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-green-800 transition shadow-sm active:scale-95">Lulus</button>
+                            <button onClick={() => updateStatus(app.id, 'Rejected')} className="bg-white text-red-600 border-2 border-red-100 px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-red-50 hover:border-red-200 transition active:scale-95">Tolak</button>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm font-bold bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">Selesai</span>
+                        )}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-      </main>
-
-      {/* --- MODAL: ADMIN REVIEW PANEL --- */}
-      {selectedApp && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            
-            <div className="bg-gray-50 p-6 border-b border-gray-100 flex justify-between items-start">
-              <div>
-                <h3 className="text-2xl font-black text-gray-900">{selectedApp.company_name}</h3>
-                <p className="text-gray-500 text-sm mt-1">SSM: {selectedApp.ssm_number} • Kategori: {selectedApp.category}</p>
-              </div>
-              <button onClick={() => setSelectedApp(null)} className="p-2 bg-white rounded-full text-gray-400 hover:text-gray-900 border shadow-sm">
-                <XCircle size={24} />
-              </button>
+                  ))}
+                </tbody>
+              </table>
             </div>
-
-            <div className="p-6">
-              <h4 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <FileText className="text-[#0F6937]" size={20} /> Dokumen Dimuat Naik
-              </h4>
-              
-              <div className="grid grid-cols-2 gap-4 mb-8">
-                <div className="border border-gray-200 rounded-xl p-4 flex items-center justify-between group hover:border-[#0F6937] transition cursor-pointer bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center">
-                      <FileText size={20} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm text-gray-900">Sijil SSM</p>
-                      <p className="text-xs text-gray-500 truncate max-w-[100px]">{selectedApp.documents_url?.ssm || 'ssm.pdf'}</p>
-                    </div>
-                  </div>
-                  <Download size={18} className="text-gray-400 group-hover:text-[#0F6937]" />
-                </div>
-
-                <div className="border border-gray-200 rounded-xl p-4 flex items-center justify-between group hover:border-[#0F6937] transition cursor-pointer bg-gray-50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center">
-                      <FileText size={20} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm text-gray-900">Senarai Ramuan</p>
-                      <p className="text-xs text-gray-500 truncate max-w-[100px]">{selectedApp.documents_url?.ingredients || 'ingredients.pdf'}</p>
-                    </div>
-                  </div>
-                  <Download size={18} className="text-gray-400 group-hover:text-[#0F6937]" />
-                </div>
-              </div>
-
-              <div className="border-t border-gray-100 pt-6">
-                <h4 className="font-bold text-gray-900 mb-4">Tindakan Admin</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <button 
-                    onClick={() => updateStatus(selectedApp.id, 'Revisions Needed')}
-                    className="w-full py-3.5 border-2 border-red-200 text-red-600 bg-red-50 rounded-xl font-bold hover:bg-red-100 transition flex items-center justify-center gap-2"
-                  >
-                    <XCircle size={18} /> Minta Baiki Dokumen
-                  </button>
-                  <button 
-                    onClick={() => updateStatus(selectedApp.id, 'Ready for JAKIM')}
-                    className="w-full py-3.5 bg-[#0F6937] text-white rounded-xl font-bold hover:bg-[#0A4A27] transition shadow-lg shadow-green-900/20 flex items-center justify-center gap-2"
-                  >
-                    <CheckCircle size={18} /> Sedia Untuk JAKIM
-                  </button>
-                </div>
-              </div>
-
-            </div>
-          </div>
+          )}
         </div>
-      )}
-
+      </div>
     </div>
   );
 }

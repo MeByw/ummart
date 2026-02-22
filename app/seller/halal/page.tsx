@@ -1,35 +1,66 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { useCart } from '../../providers';
-import { ArrowLeft, CheckCircle, FileText, Upload, ShieldCheck, Building2, AlertCircle, Loader2 } from 'lucide-react';
+import { 
+  ArrowLeft, CheckCircle, FileText, Upload, ShieldCheck, 
+  Building2, AlertCircle, Loader2, Clock, XCircle 
+} from 'lucide-react';
 
 export default function HalalApplicationPage() {
   const { sellerProfile } = useCart();
+  
+  // --- APPLICATION STATUS STATE ---
+  const [existingApplication, setExistingApplication] = useState<any>(null);
+  const [isLoadingStatus, setIsLoadingStatus] = useState(true);
+
+  // --- FORM STATE ---
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
-  // Form text data
   const [formData, setFormData] = useState({
     companyName: '',
     ssmNumber: '',
     category: 'Makanan & Minuman (Premis)',
   });
 
-  // --- FILE STATES ---
   const [ssmFile, setSsmFile] = useState<File | null>(null);
   const [ingredientsFile, setIngredientsFile] = useState<File | null>(null);
 
+  // 1. CHECK DATABASE ON PAGE LOAD
+  useEffect(() => {
+    fetchApplicationStatus();
+  }, [sellerProfile]);
+
+  const fetchApplicationStatus = async () => {
+    setIsLoadingStatus(true);
+    // Use the seller's shop name as their unique ID for now
+    const sellerId = sellerProfile?.shopName || 'Unknown Seller';
+    
+    const { data, error } = await supabase
+      .from('halal_applications')
+      .select('*')
+      .eq('seller_id', sellerId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (data) {
+      setExistingApplication(data);
+    }
+    setIsLoadingStatus(false);
+  };
+
   const handleNext = () => setStep(step + 1);
   const handleBack = () => setStep(step - 1);
+  const handleReapply = () => setExistingApplication(null); // Clear state to show form
 
   // --- SUBMIT AND UPLOAD LOGIC ---
   const submitApplication = async () => {
-    // Make sure they uploaded both files before submitting!
     if (!ssmFile || !ingredientsFile) {
       setErrorMsg('Sila muat naik Sijil SSM dan Senarai Ramuan sebelum meneruskan.');
       return;
@@ -41,62 +72,60 @@ export default function HalalApplicationPage() {
     try {
       let ssmUrl = '';
       let ingredientsUrl = '';
+      const sellerId = sellerProfile?.shopName || 'Unknown Seller';
 
-      // 1. Upload SSM File to Supabase Storage
+      // 1. Upload SSM File
       if (ssmFile) {
         const fileExt = ssmFile.name.split('.').pop();
         const fileName = `${Date.now()}_ssm_${Math.random().toString(36).substring(7)}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
-          .from('halal_application') // UPDATED BUCKET NAME
-          .upload(fileName, ssmFile);
+          .from('halal_application')
+          .upload(fileName, ssmFile, {
+            contentType: ssmFile.type || 'application/pdf',
+            upsert: false
+          });
 
         if (uploadError) throw uploadError;
-        
-        // Get the public URL
-        const { data: publicUrlData } = supabase.storage.from('halal_application').getPublicUrl(fileName); // UPDATED BUCKET NAME
-        ssmUrl = publicUrlData.publicUrl;
+        const { data } = supabase.storage.from('halal_application').getPublicUrl(fileName);
+        ssmUrl = data.publicUrl;
       }
 
-      // 2. Upload Ingredients File to Supabase Storage
+      // 2. Upload Ingredients File
       if (ingredientsFile) {
         const fileExt = ingredientsFile.name.split('.').pop();
         const fileName = `${Date.now()}_ingredients_${Math.random().toString(36).substring(7)}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
-          .from('halal_application') // UPDATED BUCKET NAME
-          .upload(fileName, ingredientsFile);
+          .from('halal_application')
+          .upload(fileName, ingredientsFile, {
+            contentType: ingredientsFile.type || 'application/pdf',
+            upsert: false
+          });
 
         if (uploadError) throw uploadError;
-        
-        // Get the public URL
-        const { data: publicUrlData } = supabase.storage.from('halal_application').getPublicUrl(fileName); // UPDATED BUCKET NAME
-        ingredientsUrl = publicUrlData.publicUrl;
+        const { data } = supabase.storage.from('halal_application').getPublicUrl(fileName);
+        ingredientsUrl = data.publicUrl;
       }
 
-      // 3. Save everything (with real file URLs) into the database!
+      // 3. Save to database
       const newApplication = {
-        seller_id: sellerProfile?.shopName || 'Unknown Seller',
+        seller_id: sellerId,
         company_name: formData.companyName,
         ssm_number: formData.ssmNumber,
         category: formData.category,
         status: 'Pending Review',
-        documents_url: { 
-          ssm: ssmUrl, 
-          ingredients: ingredientsUrl 
-        }
+        documents_url: { ssm: ssmUrl, ingredients: ingredientsUrl }
       };
 
-      const { error: dbError } = await supabase
-        .from('halal_applications')
-        .insert([newApplication]);
-
+      const { error: dbError } = await supabase.from('halal_applications').insert([newApplication]);
       if (dbError) throw dbError;
 
-      // Success! Move to the final step
+      // Success! Move to final step
       setStep(3);
+      // Fetch status again so next time they visit, it shows pending
+      fetchApplicationStatus(); 
     } catch (err: any) {
-      // JSON.stringify forces the hidden Supabase error to reveal itself!
       console.error("Error submitting halal app:", JSON.stringify(err, null, 2));
       setErrorMsg(err.message || 'Gagal menghantar permohonan. Sila cuba lagi.');
     } finally {
@@ -104,6 +133,84 @@ export default function HalalApplicationPage() {
     }
   };
 
+  // --- LOADING STATE ---
+  if (isLoadingStatus) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FA] flex flex-col">
+        <Navbar />
+        <div className="flex-1 flex flex-col items-center justify-center text-gray-400">
+          <div className="w-8 h-8 border-4 border-gray-200 border-t-[#0F6937] rounded-full animate-spin mb-4"></div>
+          <p className="font-bold">Menyemak status permohonan...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // --- EXISTING APPLICATION FOUND: SHOW STATUS UI ---
+  if (existingApplication && step !== 3) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FA] pb-24 font-sans selection:bg-[#0F6937] selection:text-white">
+        <Navbar />
+        <main className="max-w-4xl mx-auto px-4 py-8">
+          <div className="flex items-center gap-4 mb-8">
+            <Link href="/seller" className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-500 hover:text-gray-900 shadow-sm border border-gray-200 transition-all">
+              <ArrowLeft size={20} />
+            </Link>
+            <div>
+              <h1 className="text-2xl md:text-3xl font-black text-gray-900 flex items-center gap-2">
+                <ShieldCheck className="text-[#0F6937]" size={32} /> Status Halal JAKIM
+              </h1>
+              <p className="text-sm text-gray-500 font-medium mt-1">Sistem Pra-Kelayakan UMMart untuk Peniaga</p>
+            </div>
+          </div>
+
+          <div className="bg-white p-8 md:p-12 rounded-3xl shadow-sm border border-gray-100 text-center animate-in fade-in zoom-in-95">
+            
+            {existingApplication.status === 'Pending Review' && (
+              <>
+                <div className="w-24 h-24 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Clock size={48} />
+                </div>
+                <h2 className="text-2xl font-black text-gray-900 mb-2">Permohonan Sedang Disemak</h2>
+                <p className="text-gray-500 mb-6 max-w-md mx-auto">Admin kami sedang menyemak dokumen anda. Proses ini mengambil masa 1-3 hari bekerja.</p>
+                <div className="inline-flex items-center gap-2 bg-amber-50 text-amber-700 px-4 py-2 rounded-xl text-sm font-bold border border-amber-200">
+                  Status: Menunggu Kelulusan
+                </div>
+              </>
+            )}
+
+            {existingApplication.status === 'Approved' && (
+              <>
+                <div className="w-24 h-24 bg-green-50 text-[#0F6937] rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+                  <CheckCircle size={48} />
+                </div>
+                <h2 className="text-2xl font-black text-gray-900 mb-2">Alhamdulillah! Disahkan Halal</h2>
+                <p className="text-gray-500 mb-6 max-w-md mx-auto">Kedai anda kini memaparkan lencana Halal Rasmi di UMMart.</p>
+                <div className="inline-flex items-center gap-2 bg-green-50 text-[#0F6937] px-4 py-2 rounded-xl text-sm font-bold border border-green-200">
+                  Status: Aktif & Lulus
+                </div>
+              </>
+            )}
+
+            {existingApplication.status === 'Rejected' && (
+              <>
+                <div className="w-24 h-24 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <XCircle size={48} />
+                </div>
+                <h2 className="text-2xl font-black text-gray-900 mb-2">Permohonan Ditolak</h2>
+                <p className="text-gray-500 mb-6 max-w-md mx-auto">Maaf, dokumen yang disertakan tidak lengkap atau tidak sah.</p>
+                <button onClick={handleReapply} className="bg-gray-900 text-white px-8 py-3.5 rounded-xl font-bold hover:bg-black transition-all shadow-lg">
+                  Mohon Semula
+                </button>
+              </>
+            )}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // --- NO APPLICATION (OR RE-APPLYING): SHOW MULTI-STEP UPLOAD FORM ---
   return (
     <div className="min-h-screen bg-[#F8F9FA] pb-24 font-sans selection:bg-[#0F6937] selection:text-white">
       <Navbar />
@@ -117,8 +224,7 @@ export default function HalalApplicationPage() {
           </Link>
           <div>
             <h1 className="text-2xl md:text-3xl font-black text-gray-900 flex items-center gap-2">
-              <ShieldCheck className="text-[#0F6937]" size={32} />
-              Permohonan Halal JAKIM
+              <ShieldCheck className="text-[#0F6937]" size={32} /> Permohonan Halal JAKIM
             </h1>
             <p className="text-sm text-gray-500 font-medium mt-1">Sistem Pra-Kelayakan UMMart untuk Peniaga</p>
           </div>
@@ -130,26 +236,28 @@ export default function HalalApplicationPage() {
           </div>
         )}
 
-        {/* Progress Tracker */}
-        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm mb-8">
-          <div className="flex justify-between items-center relative">
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-100 rounded-full z-0"></div>
-            <div className={`absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-[#0F6937] rounded-full z-0 transition-all duration-500`} style={{ width: `${((step - 1) / 2) * 100}%` }}></div>
+        {/* Progress Tracker (Hidden on final success step) */}
+        {step !== 3 && (
+          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm mb-8">
+            <div className="flex justify-between items-center relative">
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-100 rounded-full z-0"></div>
+              <div className={`absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-[#0F6937] rounded-full z-0 transition-all duration-500`} style={{ width: `${((step - 1) / 2) * 100}%` }}></div>
 
-            {[
-              { num: 1, label: "Maklumat Syarikat" },
-              { num: 2, label: "Muat Naik Dokumen" },
-              { num: 3, label: "Semakan" }
-            ].map((s) => (
-              <div key={s.num} className="relative z-10 flex flex-col items-center gap-2">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 transition-all duration-300 ${step >= s.num ? 'bg-[#0F6937] border-green-100 text-white' : 'bg-white border-gray-100 text-gray-400'}`}>
-                  {step > s.num ? <CheckCircle size={20} /> : s.num}
+              {[
+                { num: 1, label: "Maklumat Syarikat" },
+                { num: 2, label: "Muat Naik Dokumen" },
+                { num: 3, label: "Semakan" }
+              ].map((s) => (
+                <div key={s.num} className="relative z-10 flex flex-col items-center gap-2">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold border-4 transition-all duration-300 ${step >= s.num ? 'bg-[#0F6937] border-green-100 text-white' : 'bg-white border-gray-100 text-gray-400'}`}>
+                    {step > s.num ? <CheckCircle size={20} /> : s.num}
+                  </div>
+                  <span className={`text-xs font-bold ${step >= s.num ? 'text-gray-900' : 'text-gray-400'}`}>{s.label}</span>
                 </div>
-                <span className={`text-xs font-bold ${step >= s.num ? 'text-gray-900' : 'text-gray-400'}`}>{s.label}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Form Area */}
         <div className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm">
@@ -163,31 +271,15 @@ export default function HalalApplicationPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1.5">Nama Syarikat (Seperti dalam SSM) *</label>
-                  <input 
-                    type="text" 
-                    value={formData.companyName}
-                    onChange={(e) => setFormData({...formData, companyName: e.target.value})}
-                    placeholder="Cth: UMMart Enterprise" 
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#0F6937] transition"
-                  />
+                  <input type="text" value={formData.companyName} onChange={(e) => setFormData({...formData, companyName: e.target.value})} placeholder="Cth: UMMart Enterprise" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#0F6937] transition" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1.5">Nombor Pendaftaran SSM *</label>
-                  <input 
-                    type="text" 
-                    value={formData.ssmNumber}
-                    onChange={(e) => setFormData({...formData, ssmNumber: e.target.value})}
-                    placeholder="Cth: 202301234567" 
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#0F6937] transition"
-                  />
+                  <input type="text" value={formData.ssmNumber} onChange={(e) => setFormData({...formData, ssmNumber: e.target.value})} placeholder="Cth: 202301234567" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#0F6937] transition" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1.5">Kategori Industri *</label>
-                  <select 
-                    value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#0F6937] transition"
-                  >
+                  <select value={formData.category} onChange={(e) => setFormData({...formData, category: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#0F6937] transition">
                     <option>Makanan & Minuman (Premis)</option>
                     <option>Produk Pengguna (Kosmetik/Kesihatan)</option>
                     <option>Rumah Sembelihan</option>
@@ -196,11 +288,7 @@ export default function HalalApplicationPage() {
               </div>
 
               <div className="flex justify-end pt-4">
-                <button 
-                  onClick={handleNext} 
-                  disabled={!formData.companyName || !formData.ssmNumber}
-                  className="bg-[#0F6937] text-white px-8 py-3.5 rounded-xl font-bold hover:bg-[#0A4A27] transition shadow-lg shadow-green-900/20 disabled:opacity-50"
-                >
+                <button onClick={handleNext} disabled={!formData.companyName || !formData.ssmNumber} className="bg-[#0F6937] text-white px-8 py-3.5 rounded-xl font-bold hover:bg-[#0A4A27] transition shadow-lg shadow-green-900/20 disabled:opacity-50">
                   Seterusnya
                 </button>
               </div>
@@ -219,44 +307,24 @@ export default function HalalApplicationPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* SSM FILE UPLOAD */}
                 <label className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition ${ssmFile ? 'border-[#0F6937] bg-green-50' : 'border-gray-300 hover:border-[#0F6937] hover:bg-gray-50'}`}>
                   {ssmFile ? <FileText className="text-[#0F6937] mb-2" size={24} /> : <Upload className="text-gray-400 mb-2" size={24} />}
-                  <span className={`font-bold text-sm ${ssmFile ? 'text-[#0F6937]' : 'text-gray-700'}`}>
-                    {ssmFile ? ssmFile.name : 'Sijil SSM'}
-                  </span>
+                  <span className={`font-bold text-sm ${ssmFile ? 'text-[#0F6937]' : 'text-gray-700'}`}>{ssmFile ? ssmFile.name : 'Sijil SSM'}</span>
                   <span className="text-xs text-gray-400 mt-1">{ssmFile ? 'Klik untuk tukar fail' : 'Klik untuk muat naik (PDF/Imej)'}</span>
-                  <input 
-                    type="file" 
-                    className="hidden" 
-                    accept=".pdf,image/*" 
-                    onChange={(e) => setSsmFile(e.target.files?.[0] || null)} 
-                  />
+                  <input type="file" className="hidden" accept=".pdf,image/*" onChange={(e) => setSsmFile(e.target.files?.[0] || null)} />
                 </label>
 
-                {/* INGREDIENTS FILE UPLOAD */}
                 <label className={`border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center cursor-pointer transition ${ingredientsFile ? 'border-[#0F6937] bg-green-50' : 'border-gray-300 hover:border-[#0F6937] hover:bg-gray-50'}`}>
                   {ingredientsFile ? <FileText className="text-[#0F6937] mb-2" size={24} /> : <Upload className="text-gray-400 mb-2" size={24} />}
-                  <span className={`font-bold text-sm ${ingredientsFile ? 'text-[#0F6937]' : 'text-gray-700'}`}>
-                    {ingredientsFile ? ingredientsFile.name : 'Senarai Ramuan/Bahan'}
-                  </span>
+                  <span className={`font-bold text-sm ${ingredientsFile ? 'text-[#0F6937]' : 'text-gray-700'}`}>{ingredientsFile ? ingredientsFile.name : 'Senarai Ramuan/Bahan'}</span>
                   <span className="text-xs text-gray-400 mt-1">{ingredientsFile ? 'Klik untuk tukar fail' : 'Sertakan Sijil Halal Pembekal'}</span>
-                  <input 
-                    type="file" 
-                    className="hidden" 
-                    accept=".pdf,image/*" 
-                    onChange={(e) => setIngredientsFile(e.target.files?.[0] || null)} 
-                  />
+                  <input type="file" className="hidden" accept=".pdf,image/*" onChange={(e) => setIngredientsFile(e.target.files?.[0] || null)} />
                 </label>
               </div>
 
               <div className="flex justify-between pt-4 border-t border-gray-100 mt-6">
                 <button onClick={handleBack} className="text-gray-500 font-bold px-6 py-3 hover:bg-gray-50 rounded-xl transition" disabled={isSubmitting}>Kembali</button>
-                <button 
-                  onClick={submitApplication} 
-                  disabled={isSubmitting}
-                  className="bg-[#0F6937] text-white px-8 py-3.5 rounded-xl font-bold hover:bg-[#0A4A27] transition shadow-lg shadow-green-900/20 flex items-center gap-2 disabled:opacity-70"
-                >
+                <button onClick={submitApplication} disabled={isSubmitting} className="bg-[#0F6937] text-white px-8 py-3.5 rounded-xl font-bold hover:bg-[#0A4A27] transition shadow-lg shadow-green-900/20 flex items-center gap-2 disabled:opacity-70">
                   {isSubmitting ? <><Loader2 size={18} className="animate-spin"/> Sedang Memuat Naik...</> : 'Hantar untuk Semakan'}
                 </button>
               </div>
@@ -270,7 +338,7 @@ export default function HalalApplicationPage() {
               </div>
               <h2 className="text-2xl font-black text-gray-900 mb-3">Dokumen Berjaya Diterima!</h2>
               <p className="text-gray-500 max-w-md mx-auto mb-8 leading-relaxed text-sm md:text-base">
-                Pasukan pematuhan Halal UMMart akan menyemak dokumen anda dalam masa 3-5 hari bekerja. Kami akan menghubungi anda jika terdapat dokumen yang perlu diperbaiki sebelum didaftarkan ke MYeHALAL.
+                Pasukan pematuhan Halal UMMart akan menyemak dokumen anda dalam masa 3-5 hari bekerja. Kami akan menghubungi anda jika terdapat dokumen yang perlu diperbaiki.
               </p>
               <Link href="/seller" className="inline-flex items-center justify-center bg-[#0F6937] text-white px-8 py-4 rounded-xl font-bold shadow-lg shadow-green-900/20 hover:bg-[#0A4A27] transition-all">
                 Kembali ke Dashboard
