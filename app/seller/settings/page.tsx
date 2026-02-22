@@ -1,253 +1,138 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCart } from '../../providers';
-import { Save, Camera, Store, Mail, MapPin, AlignLeft, ShieldCheck, Award, AlertCircle } from 'lucide-react';
+import { Save, Store, Mail, MapPin, ShieldCheck, Award, Upload, Image as ImageIcon } from 'lucide-react';
 
-export default function ProfileSettingsPage() {
+export default function SettingsPage() {
   const { sellerProfile, updateSellerProfile } = useCart();
+  const [formData, setFormData] = useState(sellerProfile);
+  const [isSaved, setIsSaved] = useState(false);
 
-  // Form State
-  const [formData, setFormData] = useState({
-    shopName: '',
-    email: '',
-    location: '', 
-    description: '',
-    image: '',
-    isMuslimOwned: false,
-    halalCertStatus: 'none' as 'none' | 'pending' | 'approved'
-  });
-
-  const [isSaving, setIsSaving] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Load existing profile data when page opens
   useEffect(() => {
-    if (sellerProfile) {
-      setFormData({
-        shopName: sellerProfile.shopName || sellerProfile.name || '',
-        email: sellerProfile.email || '',
-        location: sellerProfile.location || '',
-        description: sellerProfile.description || '',
-        image: sellerProfile.image || '',
-        isMuslimOwned: sellerProfile.isMuslimOwned || false,
-        halalCertStatus: sellerProfile.halalCertStatus || 'none'
-      });
-    }
+    setFormData(sellerProfile);
   }, [sellerProfile]);
 
-  // Handle Text Input Changes
-  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target as any;
+    const checked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
+    
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
-  // Handle Image File Selection
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // --- NEW: IMAGE UPLOAD HANDLER ---
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, image: reader.result as string }));
+        setFormData((prev) => ({ ...prev, image: reader.result as string }));
       };
       reader.readAsDataURL(file);
     }
   };
 
-  // Save Function
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSaving(true);
-    
-    // Update the global state
     updateSellerProfile(formData);
-    
-    // Fake delay for better UX
-    setTimeout(() => {
-        setIsSaving(false);
-        alert("Profile & Badges updated successfully!");
-    }, 600);
+    setIsSaved(true);
+    setTimeout(() => setIsSaved(false), 3000); 
   };
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4">
-      <div className="mb-8">
-        <h1 className="text-2xl font-black text-gray-900">Store Profile</h1>
-        <p className="text-gray-500 text-sm mt-1">Manage your shop details, logo, and UmMart certifications.</p>
-      </div>
+    <div className="max-w-3xl mx-auto pb-12">
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Tetapan Kedai</h1>
 
-      <form onSubmit={handleSave} className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-8 space-y-8">
-            
-          {/* --- TOP SECTION: IMAGE & BASIC INFO --- */}
-          <div className="flex flex-col md:flex-row gap-8 items-start">
-            
-            {/* Store Logo Uploader */}
-            <div className="flex flex-col items-center gap-3">
-              <div 
-                className="w-32 h-32 rounded-full border-4 border-gray-50 bg-gray-100 shadow-inner flex items-center justify-center overflow-hidden relative group cursor-pointer"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {formData.image ? (
-                   <img src={formData.image} alt="Shop Logo" className="w-full h-full object-cover group-hover:opacity-50 transition" />
-                ) : (
-                   <Store size={40} className="text-gray-300" />
-                )}
-                
-                {/* Hover Overlay */}
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Camera className="text-white" size={24} />
-                </div>
-              </div>
-              <input 
-                type="file" 
-                accept="image/*" 
-                className="hidden" 
-                ref={fileInputRef} 
-                onChange={handleImageChange} 
-              />
-              <button 
-                type="button" 
-                onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-1.5 border border-gray-300 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 hover:border-gray-400 transition shadow-sm"
-              >
-                Upload Logo
-              </button>
-            </div>
-
-            {/* --- FORM FIELDS --- */}
-            <div className="flex-1 grid grid-cols-1 gap-6 w-full">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Shop Name</label>
-                  <div className="relative">
-                    <Store className="absolute left-3 top-3 text-gray-400" size={18} />
-                    <input 
-                      name="shopName" type="text" required 
-                      value={formData.shopName} onChange={handleTextChange}
-                      className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#006837] focus:ring-1 focus:ring-[#006837] outline-none transition font-medium" 
-                      placeholder="e.g. Zul's Mart" 
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Email Address</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 text-gray-400" size={18} />
-                    <input 
-                      name="email" type="email" required 
-                      value={formData.email} onChange={handleTextChange}
-                      className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#006837] focus:ring-1 focus:ring-[#006837] outline-none transition font-medium" 
-                      placeholder="seller@ummart.com" 
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Location</label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 text-gray-400" size={18} />
-                  <input 
-                    name="location" type="text" required 
-                    value={formData.location} onChange={handleTextChange}
-                    className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#006837] focus:ring-1 focus:ring-[#006837] outline-none transition font-medium" 
-                    placeholder="e.g. Shah Alam, Selangor" 
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Shop Description</label>
-                <div className="relative">
-                  <AlignLeft className="absolute left-3 top-3 text-gray-400" size={18} />
-                  <textarea 
-                    name="description" rows={3} 
-                    value={formData.description} onChange={handleTextChange}
-                    className="w-full pl-10 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#006837] focus:ring-1 focus:ring-[#006837] outline-none transition resize-none font-medium" 
-                    placeholder="Tell buyers about your products..." 
-                  />
-                </div>
-              </div>
-            </div>
+      <form onSubmit={handleSave} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-6">
+        
+        {/* --- NEW: PROFILE PICTURE UPLOAD --- */}
+        <div className="flex flex-col items-center sm:flex-row gap-6 pb-6 border-b border-gray-100">
+          <div className="w-24 h-24 rounded-full border-4 border-gray-50 bg-gray-100 flex items-center justify-center overflow-hidden shadow-sm flex-shrink-0">
+            {formData.image ? (
+              <img src={formData.image} alt="Store Profile" className="w-full h-full object-cover" />
+            ) : (
+              <ImageIcon className="text-gray-400" size={32} />
+            )}
           </div>
-
-          {/* --- STORE BADGES & CERTIFICATIONS --- */}
-          <div className="border-t border-gray-100 pt-8 mt-4">
-            <h3 className="text-sm font-black text-gray-900 mb-6 uppercase tracking-wider">Store Badges & Certifications</h3>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              
-              {/* 1. Muslim Owned Badge */}
-              <div className={`p-5 rounded-2xl border-2 transition-all ${formData.isMuslimOwned ? 'border-[#006837] bg-green-50' : 'border-gray-200 bg-white'}`}>
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-2">
-                    <Award className={formData.isMuslimOwned ? 'text-[#006837]' : 'text-gray-400'} size={24} />
-                    <h4 className="font-bold text-gray-900">Muslim-Owned Business</h4>
-                  </div>
-                  {/* Beautiful Toggle Switch */}
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                      type="checkbox" 
-                      className="sr-only peer" 
-                      checked={formData.isMuslimOwned}
-                      onChange={(e) => setFormData(prev => ({ ...prev, isMuslimOwned: e.target.checked }))}
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#006837]"></div>
-                  </label>
-                </div>
-                <p className="text-xs text-gray-500">Display the "BMF" badge on your store profile to build trust with our buyers.</p>
-              </div>
-
-              {/* 2. Halal Certification Lead Generation */}
-              <div className="p-5 rounded-2xl border-2 border-gray-200 bg-white flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <ShieldCheck className={formData.halalCertStatus === 'approved' ? 'text-[#006837]' : 'text-gray-400'} size={24} />
-                    <h4 className="font-bold text-gray-900">JAKIM Halal Permit</h4>
-                  </div>
-                  <p className="text-xs text-gray-500 mb-4">Integrate your official Halal Certificate, or let UmMart agents assist you in applying for one.</p>
-                </div>
-                
-                {/* Dynamic Button Based on Status */}
-                {formData.halalCertStatus === 'none' && (
-                  <button 
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, halalCertStatus: 'pending' }))}
-                    className="w-full py-2.5 bg-[#D4AF37] hover:bg-[#c49f2c] text-white text-sm font-bold rounded-xl transition shadow-md shadow-yellow-900/10 flex items-center justify-center gap-2"
-                  >
-                    Apply via UmMart Now
-                  </button>
-                )}
-                {formData.halalCertStatus === 'pending' && (
-                  <div className="flex items-center justify-center gap-2 w-full py-2.5 bg-yellow-50 text-yellow-700 text-sm font-bold rounded-xl border border-yellow-200">
-                    <AlertCircle size={18} /> Application in Progress
-                  </div>
-                )}
-                {formData.halalCertStatus === 'approved' && (
-                  <div className="flex items-center justify-center gap-2 w-full py-2.5 bg-green-50 text-[#006837] text-sm font-bold rounded-xl border border-green-200">
-                    <ShieldCheck size={18} /> Officially Halal Certified
-                  </div>
-                )}
-              </div>
-            </div>
+          <div className="flex-1 text-center sm:text-left">
+            <h3 className="font-bold text-gray-900 mb-1">Logo Kedai</h3>
+            <p className="text-sm text-gray-500 mb-3">Muat naik logo perniagaan anda. Resolusi disyorkan: 500x500px.</p>
+            <label className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 font-bold text-sm rounded-lg cursor-pointer hover:bg-gray-200 transition">
+              <Upload size={16} /> Pilih Gambar
+              <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+            </label>
           </div>
         </div>
 
-        {/* --- BOTTOM SAVE BAR --- */}
-        <div className="bg-gray-50 p-6 border-t border-gray-100 flex justify-end">
-          <button 
-            type="submit" 
-            disabled={isSaving}
-            className="bg-[#006837] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-green-900/20 hover:bg-[#00552b] transition flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-70"
-          >
-            {isSaving ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : (
-                <Save size={18} />
-            )}
-            {isSaving ? 'Saving Updates...' : 'Save Profile Changes'}
+        {/* Basic Info */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-bold text-gray-800 border-b pb-2">Maklumat Asas</h2>
+          
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">Nama Kedai</label>
+            <div className="relative">
+              <Store className="absolute left-3 top-3 text-gray-400" size={18} />
+              <input type="text" name="shopName" value={formData.shopName} onChange={handleChange} className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0F6937] outline-none" required />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 text-gray-400" size={18} />
+              <input type="email" name="email" value={formData.email} onChange={handleChange} className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0F6937] outline-none" required />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">Lokasi</label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-3 text-gray-400" size={18} />
+              <input type="text" name="location" value={formData.location || ''} onChange={handleChange} className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0F6937] outline-none" placeholder="Contoh: Kuala Lumpur, MY" />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1">Penerangan Kedai</label>
+            <textarea name="description" value={formData.description || ''} onChange={handleChange} rows={3} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0F6937] outline-none" placeholder="Ceritakan sedikit tentang kedai anda..."></textarea>
+          </div>
+        </div>
+
+        {/* Trust Badges Settings */}
+        <div className="space-y-4 pt-4">
+          <h2 className="text-lg font-bold text-gray-800 border-b pb-2">Pengesahan & Kepercayaan</h2>
+          
+          <label className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50 transition">
+            <input type="checkbox" name="isMuslimOwned" checked={formData.isMuslimOwned || false} onChange={handleChange} className="w-5 h-5 accent-[#0F6937]" />
+            <div>
+              <div className="font-bold text-gray-900 flex items-center gap-2">
+                <Award size={18} className="text-[#0F6937]" /> Pemilikan Muslim (BMF)
+              </div>
+              <p className="text-sm text-gray-500">Papar lencana ini jika perniagaan ini 100% milik bumiputera/muslim.</p>
+            </div>
+          </label>
+
+          <div className="p-4 border border-gray-200 rounded-lg">
+            <label className="font-bold text-gray-900 flex items-center gap-2 mb-2">
+              <ShieldCheck size={18} className="text-[#0F6937]" /> Status Sijil Halal JAKIM
+            </label>
+            <select name="halalCertStatus" value={formData.halalCertStatus || 'none'} onChange={handleChange} className="w-full p-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#0F6937] outline-none">
+              <option value="none">Tiada Sijil / Tidak Berkaitan</option>
+              <option value="pending">Permohonan Dalam Proses (Pending)</option>
+              <option value="approved">Disahkan Halal (Approved)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Save Button */}
+        <div className="pt-4 flex items-center gap-4">
+          <button type="submit" className="flex items-center gap-2 bg-[#0F6937] text-white px-6 py-2.5 rounded-lg font-bold hover:bg-[#0a4a27] transition shadow-md">
+            <Save size={18} /> Simpan Tetapan
           </button>
+          {isSaved && <span className="text-green-600 font-bold text-sm">Tetapan berjaya disimpan!</span>}
         </div>
       </form>
     </div>

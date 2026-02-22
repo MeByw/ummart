@@ -6,201 +6,171 @@ import ProductCard from '@/components/ProductCard';
 import { useCart } from './providers';
 import { 
   Menu, Smartphone, Shirt, Coffee, BookOpen, Home, Gift, 
-  ShieldCheck, Heart, Calculator, Utensils, Award, ChevronRight, ShoppingBag
+  ShieldCheck, Heart, Calculator, Utensils, Search, Sparkles
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function HomePage() {
-  // WE INCLUDED sellerProfile HERE!
-  const { allProducts, sellerProfile } = useCart(); 
+  const { allProducts } = useCart(); 
   const [activeCategory, setActiveCategory] = useState('Semua');
+  const [searchQuery, setSearchQuery] = useState(''); 
 
-  // Sidebar Categories (Matches exactly with Add Product page)
+  // Categories 
   const categories = [
-    { name: 'Semua Kategori', value: 'Semua', icon: <Menu size={18} /> },
-    { name: 'Runcit Halal', value: 'Runcit Halal', icon: <Coffee size={18} /> },
-    { name: 'Fesyen Muslimah', value: 'Fesyen Muslimah', icon: <Shirt size={18} /> },
-    { name: 'Elektronik & Gajet', value: 'Elektronik & Gajet', icon: <Smartphone size={18} /> },
-    { name: 'Kesihatan & Kecantikan', value: 'Kesihatan & Kecantikan', icon: <Heart size={18} /> },
-    { name: 'Rumah & Kehidupan', value: 'Rumah & Kehidupan', icon: <Home size={18} /> },
-    { name: 'Buku & Alat Tulis', value: 'Buku & Alat Tulis', icon: <BookOpen size={18} /> },
-    { name: 'Hadiah & Cenderahati', value: 'Hadiah & Cenderahati', icon: <Gift size={18} /> },
+    { name: 'Semua', value: 'Semua', icon: <Sparkles size={16} /> },
+    { name: 'Runcit Halal', value: 'Runcit Halal', icon: <Coffee size={16} /> },
+    { name: 'Fesyen', value: 'Fesyen Muslimah', icon: <Shirt size={16} /> },
+    { name: 'Elektronik', value: 'Elektronik & Gajet', icon: <Smartphone size={16} /> },
+    { name: 'Kesihatan', value: 'Kesihatan & Kecantikan', icon: <Heart size={16} /> },
+    { name: 'Rumah', value: 'Rumah & Kehidupan', icon: <Home size={16} /> },
   ];
 
-  // Widget Data (Now filtering by the exact Malay terms)
+  // Quick Action Widgets
   const widgets = [
-    { label: 'Pasti Halal', icon: <ShieldCheck size={28} />, action: () => setActiveCategory('Runcit Halal') }, 
-    { label: 'Busana Muslim', icon: <Shirt size={28} />, action: () => setActiveCategory('Fesyen Muslimah') },     
-    { label: 'Makanan', icon: <Utensils size={28} />, action: () => setActiveCategory('Runcit Halal') },        
-    { label: 'Kira Zakat', icon: <Calculator size={28} />, url: '/kira_zakat' }, 
-    { label: 'Kecantikan', icon: <Heart size={28} />, action: () => setActiveCategory('Kesihatan & Kecantikan') },   
-    { label: 'Keperluan Rumah', icon: <Home size={28} />, action: () => setActiveCategory('Rumah & Kehidupan') },      
+    { label: 'Pasti Halal', icon: <ShieldCheck size={24} />, action: () => setActiveCategory('Runcit Halal') }, 
+    { label: 'Busana', icon: <Shirt size={24} />, action: () => setActiveCategory('Fesyen Muslimah') },     
+    { label: 'Kira Zakat', icon: <Calculator size={24} />, url: '/kira_zakat' }, 
+    { label: 'Keperluan', icon: <Home size={24} />, action: () => setActiveCategory('Rumah & Kehidupan') },      
   ];
 
-  // Exact Match Filtering
-  const filteredProducts = activeCategory === 'Semua' || !activeCategory
-    ? allProducts 
-    : allProducts.filter(p => p.category === activeCategory);
+  // Filtering Logic
+  const filteredProducts = allProducts.filter(p => {
+    const matchesCategory = activeCategory === 'Semua' || p.category === activeCategory;
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          p.description.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   return (
-    <div className="min-h-screen bg-[#F3F4F6] font-sans text-gray-800">
-      <Navbar />
+    <div className="min-h-screen bg-[#F8F9FA] font-sans text-gray-800 selection:bg-[#0F6937] selection:text-white relative z-0">
+      
+      {/* --- ISLAMIC GEOMETRY BACKGROUND --- */}
+      {/* This sits fixed in the background, repeating across the whole screen with a soft 4% opacity */}
+      <div className="fixed inset-0 pointer-events-none z-[-1] opacity-[0.04] bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] bg-repeat"></div>
+      
+      {/* We also add two soft blurred orbs in the far background to make the white space feel less empty */}
+      <div className="fixed top-[-10%] left-[-10%] w-[40rem] h-[40rem] bg-green-200/20 rounded-full blur-[100px] pointer-events-none z-[-1]"></div>
+      <div className="fixed bottom-[-10%] right-[-10%] w-[40rem] h-[40rem] bg-[#D4AF37]/10 rounded-full blur-[100px] pointer-events-none z-[-1]"></div>
 
-      <div className="max-w-[1400px] mx-auto px-4 py-6 flex gap-6">
+      <Navbar searchQuery={searchQuery} onSearch={setSearchQuery} />
+
+      <main className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
         
-        {/* === LEFT SIDEBAR === */}
-        <aside className="hidden lg:block w-64 flex-shrink-0">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden sticky top-24">
-            <div className="p-4 border-b border-gray-100 font-bold text-gray-900 flex items-center gap-2">
-              <Menu size={18} /> Kategori
-            </div>
-            <ul className="py-2">
-              {categories.map((cat, idx) => (
-                <li key={idx}>
-                  <button 
-                    onClick={() => setActiveCategory(cat.value)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 text-sm transition-colors ${
-                      activeCategory === cat.value 
-                      ? 'bg-green-50 text-[#0F6937] font-bold border-l-4 border-[#0F6937]' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-[#0F6937]'
-                    }`}
-                  >
-                    {cat.icon}
-                    <span>{cat.name}</span>
-                    <ChevronRight size={14} className="ml-auto opacity-30" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
+        {/* --- ABSTRACT HERO SECTION --- */}
+        {!searchQuery && (
+          <div className="relative mb-16 rounded-[2.5rem] bg-[#0F6937] overflow-hidden shadow-2xl shadow-green-900/20 isolate border border-green-800/50">
+            {/* Abstract Background Elements inside the banner */}
+            <div className="absolute top-[-25%] right-[-10%] w-96 h-96 bg-gradient-to-br from-[#D4AF37]/40 to-transparent rounded-full blur-3xl mix-blend-overlay -z-10 animate-pulse"></div>
+            <div className="absolute bottom-[-20%] left-[10%] w-72 h-72 bg-gradient-to-tr from-green-400/30 to-transparent rounded-full blur-2xl mix-blend-overlay -z-10"></div>
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] opacity-15 mix-blend-overlay -z-10"></div>
+            
+            <div className="relative z-10 p-10 md:p-16 lg:p-20 flex flex-col md:flex-row items-center justify-between gap-10">
+              <div className="max-w-xl">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-bold rounded-full mb-6 shadow-sm uppercase tracking-widest">
+                  <Sparkles size={14} className="text-[#D4AF37]" /> Kempen BME 2026
+                </div>
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 leading-[1.1] tracking-tight drop-shadow-sm">
+                  Sokong <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-yellow-200">Usahawan</span><br/>Bumiputera.
+                </h1>
+                <p className="text-green-50 text-base md:text-lg mb-8 max-w-md font-medium leading-relaxed opacity-90">
+                  Ekosistem e-dagang berteraskan syariah. Dapatkan produk tulen dan diyakini halal terus dari sumber.
+                </p>
+                <button className="bg-white text-[#0F6937] px-8 py-3.5 rounded-full text-sm font-black hover:bg-[#D4AF37] hover:text-white transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_25px_rgba(212,175,55,0.5)] transform hover:-translate-y-1">
+                  Teroka Sekarang
+                </button>
+              </div>
 
-        {/* === RIGHT MAIN FEED === */}
-        <main className="flex-1 min-w-0">
-
-          {/* === NEW: STORE PROFILE & TRUST BADGES BANNER === */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-8 flex flex-col md:flex-row items-center gap-6">
-            <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center overflow-hidden border-4 border-white shadow-md flex-shrink-0">
-              {sellerProfile.image ? (
-                <img src={sellerProfile.image} alt={sellerProfile.shopName} className="w-full h-full object-cover" />
-              ) : (
-                <ShoppingBag className="text-gray-400" size={32} />
-              )}
-            </div>
-            <div className="flex-1 text-center md:text-left">
-              <h1 className="text-2xl font-black text-gray-900 mb-1">{sellerProfile.shopName}</h1>
-              <p className="text-gray-500 text-sm mb-4">{sellerProfile.description || "Selamat datang ke kedai rasmi kami!"}</p>
-              
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3">
-                {sellerProfile.isMuslimOwned && (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 text-[#0F6937] rounded-full text-xs font-bold shadow-sm">
-                    <Award size={14} />
-                    Pemilikan Muslim (BMF)
-                  </div>
-                )}
-                
-                {sellerProfile.halalCertStatus === 'approved' && (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-50 border border-green-200 text-[#0F6937] rounded-full text-xs font-bold shadow-sm">
-                    <ShieldCheck size={14} />
-                    Sijil Halal JAKIM
-                  </div>
-                )}
-
-                {sellerProfile.halalCertStatus === 'pending' && (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-yellow-50 border border-yellow-200 text-yellow-700 rounded-full text-xs font-bold shadow-sm">
-                    <ShieldCheck size={14} />
-                    Permohonan Halal (Dalam Proses)
-                  </div>
-                )}
+              {/* Floating Quick Action Cards (Glassmorphism) */}
+              <div className="hidden lg:grid grid-cols-2 gap-4 w-full max-w-sm">
+                {widgets.map((item, idx) => {
+                  const CardContent = (
+                    <div className="bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-3xl flex flex-col items-center justify-center gap-3 text-white hover:bg-white/20 transition-all duration-300 cursor-pointer group hover:-translate-y-2 shadow-lg">
+                      <div className="p-3 bg-white/20 rounded-2xl group-hover:scale-110 transition-transform">
+                        {item.icon}
+                      </div>
+                      <span className="text-sm font-bold tracking-wide">{item.label}</span>
+                    </div>
+                  );
+                  return item.url ? (
+                    <Link key={idx} href={item.url}>{CardContent}</Link>
+                  ) : (
+                    <button key={idx} onClick={item.action} className="outline-none text-left w-full h-full block">{CardContent}</button>
+                  );
+                })}
               </div>
             </div>
           </div>
-          
-          {/* 1. HERO BANNER */}
-          <div className="relative bg-[#0F6937] rounded-xl overflow-hidden shadow-md h-48 md:h-64 mb-8 flex items-center">
-             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] opacity-10"></div>
-             <div className="relative z-10 px-8 md:px-12 w-full flex justify-between items-center">
-                <div className="max-w-lg">
-                  <span className="inline-block px-3 py-1 bg-[#D4AF37] text-white text-xs font-bold rounded-full mb-3 shadow-sm">
-                    Kempen BME
-                  </span>
-                  <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 leading-tight drop-shadow-sm">
-                    Sokong 100 Usahawan<br/>Baru Bumiputera
-                  </h1>
-                  <p className="text-green-100 text-sm mb-4">Dapatkan produk tulen dan halal terus dari sumber.</p>
-                  <button className="bg-white text-[#0F6937] px-6 py-2 rounded-md text-sm font-bold hover:bg-[#D4AF37] hover:text-white transition shadow-lg">
-                    Lihat Tawaran
-                  </button>
-                </div>
-             </div>
-          </div>
+        )}
 
-          {/* 2. CUSTOM WIDGET ROW */}
-          <div className="mb-10">
-            <div className="flex justify-between items-start gap-4 overflow-x-auto pb-4 scrollbar-hide px-2">
-              {widgets.map((item, idx) => {
-                const WidgetContent = (
-                  <>
-                    <div className="relative w-16 h-16 rounded-full bg-[#0F6937] border-[3px] border-[#D4AF37] flex items-center justify-center shadow-lg shadow-green-900/10 group-hover:-translate-y-1 transition-transform duration-300">
-                      <div className="absolute inset-1 rounded-full border border-white/20"></div>
-                      <div className="text-[#D4AF37] drop-shadow-md">
-                        {item.icon}
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-bold text-gray-700 text-center uppercase tracking-wide leading-tight group-hover:text-[#0F6937] transition-colors">
-                      {item.label}
-                    </span>
-                  </>
-                );
-
-                if (item.url) {
-                  return (
-                    <Link key={idx} href={item.url} className="flex flex-col items-center gap-3 group min-w-[80px] cursor-pointer">
-                      {WidgetContent}
-                    </Link>
-                  );
-                }
-
-                return (
-                  <button key={idx} onClick={item.action} className="flex flex-col items-center gap-3 group min-w-[80px] cursor-pointer outline-none">
-                    {WidgetContent}
-                  </button>
-                );
-              })}
+        {/* --- FLOATING CATEGORY NAVIGATION --- */}
+        {!searchQuery && (
+          <div className="flex items-center justify-center mb-16 -mt-4 relative z-20">
+            <div className="bg-white/80 backdrop-blur-xl border border-gray-200/50 p-2 rounded-full shadow-xl shadow-green-900/5 flex overflow-x-auto scrollbar-hide max-w-full">
+              {categories.map((cat, idx) => (
+                <button 
+                  key={idx}
+                  onClick={() => setActiveCategory(cat.value)}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-full text-sm font-bold transition-all whitespace-nowrap ${
+                    activeCategory === cat.value 
+                    ? 'bg-[#0F6937] text-white shadow-md transform scale-105' 
+                    : 'text-gray-500 hover:text-[#0F6937] hover:bg-green-50/50'
+                  }`}
+                >
+                  {cat.icon}
+                  {cat.name}
+                </button>
+              ))}
             </div>
-            <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-200 to-transparent mt-2"></div>
           </div>
+        )}
 
-          {/* 3. PRODUCT GRID */}
-          <div className="mb-4 flex items-center justify-between">
-             <h2 className="text-xl font-bold text-gray-800">
-               {activeCategory === 'Semua' ? 'Disyorkan Untuk Anda' : `Kategori: ${activeCategory}`}
-             </h2>
-             <span className="text-sm font-bold text-gray-500 bg-gray-200 px-3 py-1 rounded-full">
-               {filteredProducts.length} Items
+        {/* --- PRODUCT FEED SECTION --- */}
+        <div className="mb-8">
+           <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b border-gray-200/60 pb-4">
+             <div>
+               <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+                 {searchQuery 
+                    ? `Hasil Carian: "${searchQuery}"` 
+                    : activeCategory === 'Semua' ? 'Disyorkan Untuk Anda' : activeCategory
+                 }
+               </h2>
+               {!searchQuery && (
+                 <p className="text-gray-500 mt-2 font-medium">Pilihan terbaik untuk komuniti kita hari ini.</p>
+               )}
+             </div>
+             <span className="text-sm font-bold text-[#0F6937] bg-white border border-green-100 shadow-sm px-5 py-2 rounded-full inline-flex items-center gap-2">
+               <Sparkles size={14}/> {filteredProducts.length} Penemuan
              </span>
-          </div>
+           </div>
 
+          {/* Product Grid */}
           {filteredProducts.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
               {filteredProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <div key={product.id} className="hover:-translate-y-2 transition-transform duration-300">
+                  <ProductCard product={product} />
+                </div>
               ))}
             </div>
           ) : (
-             <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Coffee size={24} className="text-gray-400" />
+             <div className="flex flex-col items-center justify-center py-32 bg-white/60 backdrop-blur-sm rounded-[3rem] border border-dashed border-gray-300 shadow-sm">
+                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-sm border border-gray-100">
+                  <Search size={32} className="text-gray-300" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-800 mb-2">Tiada produk ditemui</h3>
-                <p className="text-gray-500 text-sm">Belum ada produk disenaraikan dalam kategori ini.</p>
-                <Link href="/seller/add" className="text-[#0F6937] font-bold text-sm mt-4 inline-block hover:underline">
-                  + Tambah Produk Di Sini
-                </Link>
+                <h3 className="text-xl font-black text-gray-800 mb-2">Tiada Padanan</h3>
+                <p className="text-gray-500 max-w-sm text-center">Kami tidak menjumpai produk untuk carian anda. Cuba gunakan kata kunci yang lebih umum.</p>
+                {searchQuery && (
+                  <button 
+                    onClick={() => setSearchQuery('')}
+                    className="mt-6 px-8 py-3 bg-[#0F6937] text-white rounded-full text-sm font-bold shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all"
+                  >
+                    Kosongkan Carian
+                  </button>
+                )}
              </div>
           )}
-        </main>
-      </div>
+        </div>
+      </main>
     </div>
   );
 }

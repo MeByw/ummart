@@ -1,69 +1,79 @@
 'use client';
 
 import React from 'react';
-import Navbar from '@/components/Navbar';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, Settings, Store, ClipboardList, UserCircle } from 'lucide-react';
+import { 
+  LayoutDashboard, 
+  Package, 
+  ShoppingCart, 
+  Settings, 
+  PlusCircle,
+  Eye
+} from 'lucide-react';
 
 export default function SellerLayout({ children }: { children: React.ReactNode }) {
-    const pathname = usePathname();
+  const pathname = usePathname();
 
-    const isActive = (path: string) => pathname === path;
+  const menuItems = [
+    { name: 'Dashboard', path: '/seller', icon: <LayoutDashboard size={20} /> },
+    { name: 'Produk Saya', path: '/seller/my_products', icon: <Package size={20} /> },
+    { name: 'Tambah Produk', path: '/seller/add', icon: <PlusCircle size={20} /> },
+    { name: 'Pesanan Masuk', path: '/seller/orders', icon: <ShoppingCart size={20} /> },
+    { name: 'Tetapan Kedai', path: '/seller/settings', icon: <Settings size={20} /> },
+  ];
 
-    const menuItems = [
-        { name: 'Overview', href: '/seller/overview', icon: LayoutDashboard },
-        { name: 'My Products', href: '/seller/products', icon: Package },
-        { name: 'Orders', href: '/seller/orders', icon: ClipboardList },
-        // Added the new Profile Setting button here
-        { name: 'Profile Setting', href: '/seller/settings', icon: UserCircle },
-    ];
-
-    return (
-        <div className="min-h-screen bg-gray-50 flex flex-col">
-            <Navbar />
-            
-            <div className="flex flex-1 max-w-7xl mx-auto w-full p-6 gap-6">
-                
-                {/* SIDEBAR */}
-                <div className="w-64 bg-white rounded-2xl shadow-sm border border-gray-200 h-fit p-4 hidden md:block shrink-0">
-                    <div className="flex items-center gap-3 mb-8 px-2">
-                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-[#006837]">
-                            <Store size={20} />
-                        </div>
-                        <div>
-                            <h2 className="font-bold text-gray-900 leading-tight">Seller Centre</h2>
-                            <p className="text-xs text-gray-500">Manage Shop</p>
-                        </div>
-                    </div>
-
-                    <nav className="space-y-1">
-                        {menuItems.map((item) => {
-                            const active = isActive(item.href);
-                            const Icon = item.icon;
-                            return (
-                                <Link 
-                                    key={item.href}
-                                    href={item.href}
-                                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition font-medium text-sm
-                                    ${active 
-                                        ? 'bg-[#006837] text-white shadow-md' 
-                                        : 'text-gray-600 hover:bg-gray-100'
-                                    }`}
-                                >
-                                    <Icon size={18} /> {item.name}
-                                </Link>
-                            );
-                        })}
-                    </nav>
-                </div>
-
-                {/* PAGE CONTENT */}
-                <div className="flex-1 min-w-0">
-                    {children}
-                </div>
-
-            </div>
+  return (
+    <div className="min-h-screen bg-[#F3F4F6] flex flex-col md:flex-row font-sans text-gray-800">
+      
+      {/* === SIDEBAR === */}
+      <aside className="w-full md:w-64 bg-white border-r border-gray-200 flex-shrink-0">
+        <div className="p-6 border-b border-gray-100">
+          <h2 className="text-xl font-black text-gray-900">Seller Centre</h2>
+          <p className="text-sm text-gray-500">Urus perniagaan anda</p>
         </div>
-    );
+        
+        <nav className="p-4 space-y-2 flex-1">
+          {menuItems.map((item) => {
+            const isActive = pathname === item.path;
+            return (
+              <Link 
+                key={item.path} 
+                href={item.path}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-colors ${
+                  isActive 
+                    ? 'bg-green-50 text-[#0F6937]' 
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-[#0F6937]'
+                }`}
+              >
+                {item.icon}
+                {item.name}
+              </Link>
+            );
+          })}
+
+          <div className="my-4 border-t border-gray-100 pt-4"></div>
+
+          {/* --- NEW: VIEW PUBLIC STORE BUTTON --- */}
+          <Link 
+            href="/seller/store_profile"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold transition-colors border border-transparent ${
+              pathname === '/seller/store_profile'
+                ? 'bg-[#0F6937] text-white shadow-md'
+                : 'bg-white border-gray-200 text-gray-700 hover:border-[#0F6937] hover:text-[#0F6937] shadow-sm'
+            }`}
+          >
+            <Eye size={20} />
+            Lihat Kedai Awam
+          </Link>
+        </nav>
+      </aside>
+
+      {/* === MAIN CONTENT AREA === */}
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+        {children}
+      </main>
+      
+    </div>
+  );
 }

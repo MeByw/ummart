@@ -2,113 +2,125 @@
 
 import React, { useState } from 'react';
 import { useCart } from '../../providers';
-import { Search, Plus, Trash2, Upload, X } from 'lucide-react';
+import { Search, Plus, Trash2, Edit, PackageOpen, MoreVertical } from 'lucide-react';
+import Link from 'next/link';
+import Image from 'next/image';
 
 export default function MyProductsPage() {
-  const { allProducts, addProduct, deleteProduct, sellerProfile } = useCart();
+  const { allProducts, deleteProduct } = useCart();
   const [searchQuery, setSearchQuery] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState({ name: '', price: '', category: 'Food', image: '' });
 
-  const filteredProducts = allProducts.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setFormData(prev => ({ ...prev, image: reader.result as string }));
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSaveProduct = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.price || !formData.image) return alert("Please fill all fields");
-
-    addProduct({
-        id: Date.now(),
-        name: formData.name,
-        price: parseFloat(formData.price),
-        category: formData.category,
-        image: formData.image,
-        description: "New Item",
-        seller: sellerProfile.shopName || sellerProfile.name,
-        rating: 0, reviews: 0
-    });
-    setIsModalOpen(false);
-    setFormData({ name: '', price: '', category: 'Food', image: '' });
-  };
+  // Search logic for Seller Dashboard
+  const filteredProducts = allProducts.filter(product => 
+    product.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    product.category.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden animate-in fade-in duration-300">
-        <div className="p-6 flex flex-col md:flex-row justify-between items-center gap-4 border-b border-gray-100">
-            <h1 className="text-xl font-bold text-gray-800">Inventory Management</h1>
-            <div className="flex gap-3 w-full md:w-auto">
-                <div className="relative flex-1 md:w-64">
-                    <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"/>
-                    <input 
-                        type="text" placeholder="Search products..." 
-                        value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-[#006837]"
-                    />
-                </div>
-                <button onClick={() => setIsModalOpen(true)} className="bg-[#006837] text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 hover:bg-[#00552b]">
-                    <Plus size={18}/> Add Product
-                </button>
-            </div>
+    <div className="animate-in fade-in slide-in-from-bottom-4 pb-20 max-w-6xl mx-auto">
+      
+      {/* Header Area */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+        <div>
+          <h1 className="text-2xl font-black text-gray-900">Produk Saya</h1>
+          <p className="text-gray-500 text-sm">Urus dan kemas kini senarai produk kedai anda.</p>
         </div>
+        <Link 
+          href="/seller/add"
+          className="bg-[#0F6937] text-white px-5 py-2.5 rounded-lg font-bold text-sm shadow-sm hover:bg-[#0a4a27] transition flex items-center justify-center gap-2"
+        >
+          <Plus size={18} /> Tambah Produk Baru
+        </Link>
+      </div>
 
-        <div className="overflow-x-auto">
+      {/* Control Bar (Search & Filter) */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 mb-6">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+          <input 
+            type="text" 
+            placeholder="Cari nama produk atau kategori..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F6937]/50 focus:border-[#0F6937] text-sm"
+          />
+        </div>
+        <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200 font-medium">
+          <PackageOpen size={18} /> {filteredProducts.length} Produk
+        </div>
+      </div>
+
+      {/* Product List */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        {filteredProducts.length === 0 ? (
+          <div className="p-12 text-center text-gray-500">
+            <PackageOpen size={48} className="mx-auto text-gray-300 mb-4" />
+            <p className="font-bold text-gray-800 mb-1">Tiada produk ditemui.</p>
+            <p className="text-sm">Cuba carian lain atau tambah produk baru.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-                <thead className="bg-gray-50 text-xs font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                    <tr>
-                        <th className="px-6 py-4">Product Name</th>
-                        <th className="px-6 py-4">Category</th>
-                        <th className="px-6 py-4">Price</th>
-                        <th className="px-6 py-4 text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                    {filteredProducts.map((product) => (
-                    <tr key={product.id} className="hover:bg-gray-50 transition">
-                        <td className="px-6 py-4 flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-gray-100 border overflow-hidden"><img src={product.image} className="w-full h-full object-cover"/></div>
-                            <span className="font-bold text-sm">{product.name}</span>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{product.category}</td>
-                        <td className="px-6 py-4 font-bold text-sm">RM{product.price.toFixed(2)}</td>
-                        <td className="px-6 py-4 text-right">
-                            <button onClick={() => deleteProduct(product.id)} className="p-2 text-gray-400 hover:text-red-500"><Trash2 size={16}/></button>
-                        </td>
-                    </tr>
-                    ))}
-                </tbody>
+              <thead>
+                <tr className="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 font-black tracking-wider">
+                  <th className="p-4 rounded-tl-xl">Produk</th>
+                  <th className="p-4">Kategori</th>
+                  <th className="p-4">Harga (RM)</th>
+                  <th className="p-4">Jualan</th>
+                  <th className="p-4 text-right rounded-tr-xl">Tindakan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {filteredProducts.map((product) => (
+                  <tr key={product.id} className="hover:bg-green-50/30 transition">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                          <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-gray-900 text-sm line-clamp-1">{product.name}</p>
+                          <p className="text-xs text-gray-400 mt-0.5 flex gap-1 items-center">
+                            ID: {product.id}
+                          </p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4 text-sm font-medium text-gray-600">
+                      <span className="bg-gray-100 px-2 py-1 rounded-md text-xs">{product.category}</span>
+                    </td>
+                    <td className="p-4 text-sm font-bold text-[#0F6937]">
+                      {product.price.toFixed(2)}
+                    </td>
+                    <td className="p-4 text-sm text-gray-500 font-medium">
+                      {product.sold || 0} Terjual
+                    </td>
+                    <td className="p-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition" title="Edit">
+                          <Edit size={16} />
+                        </button>
+                        <button 
+                          onClick={() => {
+                            if (window.confirm('Adakah anda pasti mahu memadam produk ini?')) {
+                              deleteProduct(product.id);
+                            }
+                          }}
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                          title="Padam"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
-        </div>
-
-        {/* MODAL */}
-        {isModalOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-bold text-lg">Add Product</h3>
-                        <button onClick={() => setIsModalOpen(false)}><X size={20} className="text-gray-400"/></button>
-                    </div>
-                    <form onSubmit={handleSaveProduct} className="space-y-4">
-                        <div className="border-2 border-dashed border-gray-300 rounded-xl h-32 flex flex-col items-center justify-center relative hover:bg-gray-50 cursor-pointer">
-                            <input type="file" accept="image/*" onChange={handleImageUpload} className="absolute inset-0 opacity-0 cursor-pointer"/>
-                            {formData.image ? <img src={formData.image} className="h-full w-full object-contain p-2"/> : <Upload className="text-gray-400"/>}
-                        </div>
-                        <input required placeholder="Product Name" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full p-2 border rounded-lg"/>
-                        <div className="grid grid-cols-2 gap-4">
-                            <input required type="number" step="0.01" placeholder="Price" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} className="w-full p-2 border rounded-lg"/>
-                            <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full p-2 border rounded-lg bg-white"><option>Food</option><option>Clothing</option><option>Electronics</option></select>
-                        </div>
-                        <button type="submit" className="w-full bg-[#006837] text-white py-3 rounded-xl font-bold">Create</button>
-                    </form>
-                </div>
-            </div>
+          </div>
         )}
+      </div>
+
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { products as initialProducts } from './products';
-import { supabase } from '../lib/supabase'; // <-- WE ARE IMPORTING YOUR DATABASE HERE
+import { supabase } from '../lib/supabase';
 
 // --- SHARED TYPES ---
 export interface Product {
@@ -19,6 +19,7 @@ export interface Product {
   colors?: string[];
   sizes?: string[];
   sold?: number;
+  variants?: { id?: string; name: string; image?: string }[];
 }
 
 export interface CartItem extends Product {
@@ -34,7 +35,7 @@ export interface SellerProfile {
   shopName: string;
   image: string; 
   description?: string; 
-  rating?: number;      
+  rating?: number;       
   location?: string;
   // --- NEW BADGE FIELDS ---
   isMuslimOwned?: boolean;
@@ -66,8 +67,8 @@ const DEFAULT_SELLER: SellerProfile = {
     description: "Welcome to my official shop!",
     rating: 5.0,
     location: "Kuala Lumpur, MY",
-    isMuslimOwned: true, // Defaulting to true for demo
-    halalCertStatus: 'approved' // Defaulting to approved for demo
+    isMuslimOwned: true,
+    halalCertStatus: 'approved'
 };
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
@@ -79,14 +80,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // --- 1. LOAD DATA FROM SUPABASE ---
   useEffect(() => {
     if (typeof window !== 'undefined') {
-        // We still keep Cart and Profile in local storage (perfect for unlogged users)
         const savedCart = localStorage.getItem('ummart-cart');
         const savedProfile = localStorage.getItem('ummart-seller-profile');
         
         if (savedCart) setCart(JSON.parse(savedCart));
         if (savedProfile) setSellerProfile(JSON.parse(savedProfile));
 
-        // THE MAGIC: Fetch products from Supabase Cloud!
         const loadDatabase = async () => {
             const { data, error } = await supabase
                 .from('products')
@@ -98,11 +97,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
                 return;
             }
 
-            // If the database is completely empty, automatically seed it with our defaults!
             if (data.length === 0) {
                 console.log("Database is empty! Uploading default products to the cloud...");
                 
-                // Remove the local IDs and fields not in our database schema
                 const productsToInsert = initialProducts.map(({ id, hasVariants, isHalal, ...rest }: any) => rest);
                 
                 const { data: insertedData, error: insertError } = await supabase
@@ -130,7 +127,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (isLoaded) {
       localStorage.setItem('ummart-cart', JSON.stringify(cart));
       localStorage.setItem('ummart-seller-profile', JSON.stringify(sellerProfile));
-      // NOTE: We no longer save products to localStorage! They live in the cloud now.
     }
   }, [cart, sellerProfile, isLoaded]);
 
@@ -155,13 +151,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // --- DATABASE WRITES ---
   const addProduct = async (newProduct: Product) => {
-      // Remove temporary local ID so Supabase generates a real one
       const { id, ...productData } = newProduct;
       
-      // 1. Show it instantly on screen (Optimistic UI)
       setAllProducts((prev) => [newProduct, ...prev]);
 
-      // 2. Save it permanently to the cloud
       const { data, error } = await supabase
           .from('products')
           .insert([productData])
@@ -170,26 +163,43 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (error) {
           console.error("Error saving product to Supabase:", error);
       } else if (data) {
-          // Replace the temporary screen product with the real Database product
           setAllProducts((prev) => prev.map(p => p.id === newProduct.id ? data[0] : p));
       }
   };
 
   const deleteProduct = async (id: number) => {
-      // 1. Remove from screen instantly
       setAllProducts((prev) => prev.filter(p => p.id !== id));
       
-      // 2. Delete from cloud
       const { error } = await supabase.from('products').delete().eq('id', id);
       if (error) console.error("Error deleting product:", error);
   };
 
-  const updateSellerProfile = (newDetails: Partial<SellerProfile>) => {
-      setSellerProfile((prev) => {
-          const updated = { ...prev, ...newDetails };
-          // Note: In a full app, we would update the product seller names in the DB here too!
-          return updated;
-      });
+  // --- UPDATE SELLER PROFILE & SYNC PRODUCTS ---
+  const updateSellerProfile = async (newDetails: Partial<SellerProfile>) => {
+      const oldShopName = sellerProfile.shopName;
+      const newShopName = newDetails.shopName;
+
+      // Update the profile state instantly
+      setSellerProfile((prev) => ({ ...prev, ...newDetails }));
+
+      // If the shop name changed, update the products in the database so they don't go missing!
+      if (newShopName && newShopName !== oldShopName) {
+          
+          // Instantly update products on the screen
+          setAllProducts((prev) => 
+              prev.map(p => p.seller === oldShopName ? { ...p, seller: newShopName } : p)
+          );
+
+          // Update the real database (Supabase) in the background
+          const { error } = await supabase
+              .from('products')
+              .update({ seller: newShopName })
+              .eq('seller', oldShopName);
+
+          if (error) {
+              console.error("Error updating product seller names in Supabase:", error);
+          }
+      }
   };
 
   const cartTotal = cart.reduce((total, item) => total + item.price * item.qty, 0);
