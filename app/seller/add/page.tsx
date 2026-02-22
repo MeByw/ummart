@@ -6,15 +6,22 @@ import { ArrowLeft, Upload, X, Image as ImageIcon, Save, DollarSign, Layers } fr
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
-// 1. ADD THIS: The exact categories used on your Homepage
+// The exact categories used on your Homepage
 const UMMART_CATEGORIES = [
     'Runcit Halal',
     'Fesyen Muslimah',
+    'Pakaian Lelaki',
+    'Keperluan Ibadah',
     'Elektronik & Gajet',
     'Kesihatan & Kecantikan',
     'Rumah & Kehidupan',
+    'Aksesori & Barang Kemas',
     'Buku & Alat Tulis',
-    'Hadiah & Cenderahati'
+    'Barangan Bayi & Kanak-kanak',
+    'Sukan & Riadah',
+    'Automotif & Aksesori',
+    'Hadiah & Cenderahati',
+    'Lain-lain'
 ];
 
 export default function AddProductPage() {
@@ -26,7 +33,7 @@ export default function AddProductPage() {
     const [formData, setFormData] = useState({
         name: '',
         price: '',
-        category: UMMART_CATEGORIES[0], // 2. UPDATE THIS: Default to the first Malay category
+        category: UMMART_CATEGORIES[0], 
         description: '',
         image: ''
     });
@@ -41,7 +48,6 @@ export default function AddProductPage() {
     const [tempSize, setTempSize] = useState('');
     
     // --- HELPER: COMPRESS IMAGE ---
-    // Shrinks the image to a max width of 600px and reduces quality to 60%
     const compressImage = (file: File): Promise<string> => {
         return new Promise((resolve) => {
             const reader = new FileReader();
@@ -51,10 +57,9 @@ export default function AddProductPage() {
                 img.src = event.target?.result as string;
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    const maxWidth = 600; // Max width to save space
+                    const maxWidth = 600; 
                     const scaleSize = maxWidth / img.width;
                     
-                    // Only scale down if the image is wider than maxWidth
                     if (img.width > maxWidth) {
                         canvas.width = maxWidth;
                         canvas.height = img.height * scaleSize;
@@ -66,7 +71,6 @@ export default function AddProductPage() {
                     const ctx = canvas.getContext('2d');
                     ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
                     
-                    // Convert to JPEG with 60% quality (drastically reduces file size)
                     resolve(canvas.toDataURL('image/jpeg', 0.6)); 
                 };
             };
@@ -74,7 +78,6 @@ export default function AddProductPage() {
     };
 
     // --- HANDLERS ---
-
     const handleTextChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -100,7 +103,6 @@ export default function AddProductPage() {
 
     const removeColor = (colorToRemove: string) => {
         setColors(colors.filter(c => c !== colorToRemove));
-        // Also remove the associated image if exists
         const newImages = { ...colorImages };
         delete newImages[colorToRemove];
         setColorImages(newImages);
@@ -124,19 +126,31 @@ export default function AddProductPage() {
         }
     };
 
-    // 5. SUBMIT FORM
+    // 5. SUBMIT FORM (Updated to bundle variants for the DB)
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        console.log("Submit button clicked!"); // For debugging in your browser console
+        console.log("Submit button clicked!"); 
 
         try {
-            // Basic Validation
             if (!formData.name || !formData.price || !formData.image) {
                 alert("Please fill in the product name, price, and upload a main image.");
                 return;
             }
 
-            // Safely create the product (added ? marks to prevent crashes if profile is missing)
+            // --- THE INVISIBLE FIX ---
+            // Package colors and sizes into the exact 'variants' JSON array Supabase wants
+            const combinedVariants: any[] = [];
+            
+            // Add colors (with their images)
+            colors.forEach(color => {
+                combinedVariants.push({ name: color, image: colorImages[color] || '' });
+            });
+            
+            // Add sizes (no images needed)
+            sizes.forEach(size => {
+                combinedVariants.push({ name: `Saiz: ${size}`, image: '' });
+            });
+
             const newProduct = {
                 id: Date.now(), 
                 name: formData.name,
@@ -144,22 +158,19 @@ export default function AddProductPage() {
                 category: formData.category,
                 description: formData.description,
                 image: formData.image,
-                seller: sellerProfile?.shopName || sellerProfile?.name || "Ummart Seller", // Safely linked
-                rating: 0,
+                seller: sellerProfile?.shopName || sellerProfile?.name || "Ummart Seller", 
+                rating: 5.0, // Start new products at 5.0 so they look good!
                 reviews: 0,
                 sold: 0,
-                colors: colors.length > 0 ? colors : undefined,
-                sizes: sizes.length > 0 ? sizes : undefined,
-                colorImages: Object.keys(colorImages).length > 0 ? colorImages : undefined
+                variants: combinedVariants.length > 0 ? combinedVariants : undefined
             };
 
-            console.log("Saving product:", newProduct); // Log what is being saved
+            console.log("Saving product:", newProduct); 
             
             addProduct(newProduct);
-        alert("Product Added Successfully!");
+            alert("Product Added Successfully!");
         
-        // CLIENT-SIDE REDIRECT: Changes page smoothly WITHOUT wiping React's memory
-        router.push('/seller');
+            router.push('/seller');
 
         } catch (error) {
             console.error("Crash during submit:", error);
@@ -168,11 +179,11 @@ export default function AddProductPage() {
     };
 
     return (
-        <div className="animate-in fade-in slide-in-from-bottom-4">
+        <div className="animate-in fade-in slide-in-from-bottom-4 pb-20">
             
             {/* Header */}
-            <div className="flex items-center gap-4 mb-8">
-                <Link href="/seller" className="p-2 bg-white rounded-full border hover:bg-gray-100 transition text-gray-600">
+            <div className="flex items-center gap-4 mb-8 pt-8 px-4 max-w-5xl mx-auto">
+                <Link href="/seller" className="p-2 bg-white rounded-full border hover:bg-gray-100 transition text-gray-600 shadow-sm">
                     <ArrowLeft size={20} />
                 </Link>
                 <div>
@@ -181,7 +192,7 @@ export default function AddProductPage() {
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8 max-w-5xl">
+            <form onSubmit={handleSubmit} className="space-y-8 max-w-5xl mx-auto px-4">
                 
                 {/* SECTION 1: BASIC INFO & IMAGES */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -237,7 +248,6 @@ export default function AddProductPage() {
                                 <div className="relative">
                                     <Layers size={16} className="absolute left-3 top-3.5 text-gray-400"/>
                                     
-                                    {/* 3. UPDATE THIS: Now maps the actual UMMART_CATEGORIES */}
                                     <select 
                                         name="category" value={formData.category} onChange={handleTextChange}
                                         className="w-full pl-9 p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-[#006837] outline-none font-medium transition appearance-none"
@@ -246,7 +256,6 @@ export default function AddProductPage() {
                                             <option key={cat} value={cat}>{cat}</option>
                                         ))}
                                     </select>
-
                                 </div>
                             </div>
                         </div>

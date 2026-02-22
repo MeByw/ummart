@@ -13,47 +13,82 @@ import {
 
 export default function ProductDetailClient({ product }: { product: any }) {
   const router = useRouter();
-  
   const { addToCart, sellerProfile } = useCart();
   
-  // 1. Safely extract and PARSE variants from the database
-  let productVariants: any[] = [];
+  // --- 1. SMART VARIANT SEPARATION (Colors vs Sizes) ---
+  let colorOptions: any[] = [];
+  let sizeOptions: any[] = [];
+  
   try {
+    let rawVariants: any[] = [];
+    
+    // Check for NEW products
     if (typeof product?.variants === 'string') {
-      // If Supabase sends it as a raw string, force it into a JSON array
-      productVariants = JSON.parse(product.variants);
+      rawVariants = JSON.parse(product.variants);
     } else if (Array.isArray(product?.variants)) {
-      // If it's already an array, use it directly
-      productVariants = product.variants;
+      rawVariants = product.variants;
+    } 
+    
+    if (rawVariants.length > 0) {
+      // Split the variants back into two groups
+      rawVariants.forEach(v => {
+        if (v.name.startsWith('Saiz: ')) {
+          // It's a size! Remove the "Saiz: " prefix to make the button look clean
+          sizeOptions.push({ ...v, name: v.name.replace('Saiz: ', '') });
+        } else {
+          // It's a color or normal variant
+          colorOptions.push(v);
+        }
+      });
+    } else {
+      // Fallback for OLD products
+      if (Array.isArray(product?.colors)) {
+        colorOptions = product.colors.map((colorName: string) => ({
+          name: colorName,
+          image: product.colorImages ? product.colorImages[colorName] : ''
+        }));
+      }
+      if (Array.isArray(product?.sizes)) {
+        sizeOptions = product.sizes.map((sizeName: string) => ({
+          name: sizeName, image: ''
+        }));
+      }
     }
   } catch (error) {
     console.error("Could not parse product variants:", error);
   }
 
+  // --- 2. STATES FOR SELECTIONS ---
   const [isWishlist, setIsWishlist] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [quantity, setQuantity] = useState(1);
   
-  const [selectedVariant, setSelectedVariant] = useState<any>(
-    productVariants.length > 0 ? productVariants[0] : null
+  // Hold TWO separate selections now
+  const [selectedColor, setSelectedColor] = useState<any>(
+    colorOptions.length > 0 ? colorOptions[0] : null
   ); 
+  const [selectedSize, setSelectedSize] = useState<any>(
+    sizeOptions.length > 0 ? sizeOptions[0] : null
+  );
   
   const [activeImage, setActiveImage] = useState<string | undefined>(
-    productVariants.length > 0 && productVariants[0]?.image 
-      ? productVariants[0].image 
+    colorOptions.length > 0 && colorOptions[0]?.image 
+      ? colorOptions[0].image 
       : product?.image
   );
 
+  // Sync image if product data changes
   useEffect(() => {
     if (product) {
-      setActiveImage(selectedVariant?.image || product?.image);
+      setActiveImage(selectedColor?.image || product?.image);
     }
-  }, [product, selectedVariant]);
+  }, [product, selectedColor]);
 
-  const handleSelectVariant = (variant: any) => {
-    setSelectedVariant(variant);
-    if (variant?.image) {
-      setActiveImage(variant.image);
+  // Handle color click (changes image)
+  const handleSelectColor = (color: any) => {
+    setSelectedColor(color);
+    if (color?.image) {
+      setActiveImage(color.image);
     } else if (product?.image) {
       setActiveImage(product.image);
     }
@@ -61,29 +96,62 @@ export default function ProductDetailClient({ product }: { product: any }) {
 
   const storeUrl = `/store/${sellerProfile?.shopName ? sellerProfile.shopName.toLowerCase().replace(/\s+/g, '-') : 'ummart'}`;
 
-  // Safe gallery mapping
   const galleryImages = Array.from(new Set([
     product?.image, 
-    ...productVariants.map((v: any) => v?.image)
+    ...colorOptions.map((v: any) => v?.image)
   ])).filter(Boolean);
 
+  // Helper to format the cart name (e.g. "Merah | Saiz: L")
+  const getCartVariantName = () => {
+    const parts = [];
+    if (selectedColor) parts.push(selectedColor.name);
+    if (selectedSize) parts.push(`Saiz: ${selectedSize.name}`);
+    return parts.length > 0 ? parts.join(' | ') : undefined;
+  };
+
+  // --- CART ACTIONS ---
   const handleAddToCart = () => {
     if (!product) return;
-    addToCart(product, quantity, selectedVariant?.name);
+    
+    // SMART UPGRADE: Swap the main image with the selected variant's image!
+    const productWithVariantImage = {
+      ...product,
+      image: activeImage || product.image
+    };
+
+    addToCart(productWithVariantImage, quantity, getCartVariantName());
+    
     setShowNotification(true);
     setTimeout(() => setShowNotification(false), 3000);
   };
 
+  // --- DIRECT BUY NOW LOGIC ---
   const handleBuyNow = () => {
     if (!product) return;
-    addToCart(product, quantity, selectedVariant?.name);
-    router.push('/cart');
+
+    // SMART UPGRADE: Swap the main image with the selected variant's image!
+    const productWithVariantImage = {
+      ...product,
+      image: activeImage || product.image
+    };
+
+    // 1. Package the exact product configuration the user is looking at
+    const directBuyItem = {
+      product: productWithVariantImage, 
+      quantity: quantity,
+      variantName: getCartVariantName() || '' 
+    };
+
+    // 2. Save it to the browser's temporary session storage
+    sessionStorage.setItem('directBuyItem', JSON.stringify(directBuyItem));
+
+    // 3. Send them to checkout with a flag telling it to ignore the normal cart
+    router.push('/checkout?direct=true');
   };
 
   const increaseQuantity = () => setQuantity(prev => prev + 1);
   const decreaseQuantity = () => setQuantity(prev => (prev > 1 ? prev - 1 : 1));
 
-  // Failsafe: if product is somehow still missing, show a loading/empty state
   if (!product) return null;
 
   return (
@@ -93,7 +161,7 @@ export default function ProductDetailClient({ product }: { product: any }) {
         <div className="fixed top-20 lg:top-24 left-1/2 -translate-x-1/2 z-50 bg-[#0F6937] text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-2 animate-bounce w-max max-w-[90vw]">
           <CheckCircle size={20} className="shrink-0" />
           <span className="font-bold text-sm truncate">
-            {quantity}x {product?.name} {selectedVariant ? `(${selectedVariant.name})` : ''} ditambah!
+            {quantity}x {product?.name} {getCartVariantName() ? `(${getCartVariantName()})` : ''} ditambah!
           </span>
         </div>
       )}
@@ -176,16 +244,17 @@ export default function ProductDetailClient({ product }: { product: any }) {
 
             <hr className="border-gray-100 mb-6" />
 
-            {productVariants.length > 0 && (
+            {/* --- SEPARATED COLOR OPTIONS --- */}
+            {colorOptions.length > 0 && (
               <div className="mb-6">
-                <h3 className="font-bold text-gray-900 mb-3 text-sm uppercase tracking-wider">Pilihan Variasi</h3>
+                <h3 className="font-bold text-gray-900 mb-3 text-sm uppercase tracking-wider">Pilihan Warna / Jenis</h3>
                 <div className="flex flex-wrap gap-3">
-                  {productVariants.map((v: any) => (
+                  {colorOptions.map((v: any, idx: number) => (
                     <button
-                      key={v.id || v.name}
-                      onClick={() => handleSelectVariant(v)}
+                      key={`color-${idx}`}
+                      onClick={() => handleSelectColor(v)}
                       className={`px-5 py-2.5 rounded-xl font-bold text-sm border-2 transition-all flex items-center gap-2 ${
-                        selectedVariant?.name === v.name 
+                        selectedColor?.name === v.name 
                         ? 'border-[#0F6937] bg-green-50 text-[#0F6937]' 
                         : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
                       }`}
@@ -193,6 +262,28 @@ export default function ProductDetailClient({ product }: { product: any }) {
                       {v.image && (
                          <img src={v.image} alt={v.name} className="w-6 h-6 rounded-full object-cover border border-gray-200" />
                       )}
+                      {v.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* --- SEPARATED SIZE OPTIONS --- */}
+            {sizeOptions.length > 0 && (
+              <div className="mb-6">
+                <h3 className="font-bold text-gray-900 mb-3 text-sm uppercase tracking-wider">Pilihan Saiz</h3>
+                <div className="flex flex-wrap gap-3">
+                  {sizeOptions.map((v: any, idx: number) => (
+                    <button
+                      key={`size-${idx}`}
+                      onClick={() => setSelectedSize(v)}
+                      className={`px-5 py-2.5 rounded-xl font-bold text-sm border-2 transition-all flex items-center gap-2 ${
+                        selectedSize?.name === v.name 
+                        ? 'border-[#0F6937] bg-green-50 text-[#0F6937]' 
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
                       {v.name}
                     </button>
                   ))}

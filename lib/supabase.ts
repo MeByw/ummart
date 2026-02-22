@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Temporarily pasting them directly here to test!
 const supabaseUrl = 'https://okkkxcmzkwplhzqcodro.supabase.co'
-const supabaseAnonKey = 'sb_publishable_-iFwZ7VW2yKFjAV-i_uQag_PewTTYjX'
+// Paste your copied Anon Key (Legacy) inside the quotes below!
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9ra2t4Y216a3dwbGh6cWNvZHJvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE1NzgwOTgsImV4cCI6MjA4NzE1NDA5OH0.gZVAcpQYyZTcTaNzOGT-kQkYQSzVXjLgmkcc-4-tRbg'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)

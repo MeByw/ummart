@@ -6,7 +6,8 @@ import ProductCard from '@/components/ProductCard';
 import { useCart } from './providers';
 import { 
   Menu, Smartphone, Shirt, Coffee, BookOpen, Home, Gift, 
-  ShieldCheck, Heart, Calculator, Utensils, Search, Sparkles
+  ShieldCheck, Heart, Calculator, Utensils, Search, Sparkles,
+  Watch, Baby, Dumbbell, Car, Package
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -19,10 +20,19 @@ export default function HomePage() {
   const categories = [
     { name: 'Semua', value: 'Semua', icon: <Sparkles size={16} /> },
     { name: 'Runcit Halal', value: 'Runcit Halal', icon: <Coffee size={16} /> },
-    { name: 'Fesyen', value: 'Fesyen Muslimah', icon: <Shirt size={16} /> },
-    { name: 'Elektronik', value: 'Elektronik & Gajet', icon: <Smartphone size={16} /> },
+    { name: 'Fesyen Muslimah', value: 'Fesyen Muslimah', icon: <Shirt size={16} /> },
+    { name: 'Pakaian Lelaki', value: 'Pakaian Lelaki', icon: <Shirt size={16} /> },
+    { name: 'Keperluan Ibadah', value: 'Keperluan Ibadah', icon: <BookOpen size={16} /> },
+    { name: 'Elektronik & Gajet', value: 'Elektronik & Gajet', icon: <Smartphone size={16} /> },
     { name: 'Kesihatan', value: 'Kesihatan & Kecantikan', icon: <Heart size={16} /> },
     { name: 'Rumah', value: 'Rumah & Kehidupan', icon: <Home size={16} /> },
+    { name: 'Aksesori', value: 'Aksesori & Barang Kemas', icon: <Watch size={16} /> },
+    { name: 'Buku & Alat Tulis', value: 'Buku & Alat Tulis', icon: <BookOpen size={16} /> },
+    { name: 'Barangan Bayi', value: 'Barangan Bayi & Kanak-kanak', icon: <Baby size={16} /> },
+    { name: 'Sukan & Riadah', value: 'Sukan & Riadah', icon: <Dumbbell size={16} /> },
+    { name: 'Automotif', value: 'Automotif & Aksesori', icon: <Car size={16} /> },
+    { name: 'Hadiah', value: 'Hadiah & Cenderahati', icon: <Gift size={16} /> },
+    { name: 'Lain-lain', value: 'Lain-lain', icon: <Package size={16} /> },
   ];
 
   // Quick Action Widgets
@@ -70,7 +80,7 @@ export default function HomePage() {
                   <Sparkles size={14} className="text-[#D4AF37]" /> Kempen BME 2026
                 </div>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 leading-[1.1] tracking-tight drop-shadow-sm">
-                  Sokong <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-yellow-200">Usahawan</span><br/>Bumiputera.
+                  Sokong <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#D4AF37] to-yellow-200">Usahawan</span><br/>Muslim Malaysia.
                 </h1>
                 <p className="text-green-50 text-base md:text-lg mb-8 max-w-md font-medium leading-relaxed opacity-90">
                   Ekosistem e-dagang berteraskan syariah. Dapatkan produk tulen dan diyakini halal terus dari sumber.

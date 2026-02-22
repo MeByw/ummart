@@ -1,239 +1,282 @@
 'use client';
 
-import React, { useState, useEffect, Suspense, useMemo } from 'react';
-import { useCart } from '../providers'; 
-import Link from 'next/link';
-import { ArrowLeft, CreditCard, MapPin, ShieldCheck, CheckCircle, Heart, Loader2, Wallet, Home, Briefcase, Plus, X, Save } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import Navbar from '@/components/Navbar';
+import { useCart } from '../providers';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { 
+  ArrowLeft, MapPin, Truck, CreditCard, ShieldCheck, 
+  CheckCircle, ChevronRight, Wallet, Receipt
+} from 'lucide-react';
 
 export default function CheckoutPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-[#006837] font-bold gap-2"><Loader2 className="animate-spin"/> Loading Checkout...</div>}>
-        <CheckoutContent />
-    </Suspense>
-  );
-}
-
-function CheckoutContent() {
-  const { cart, clearCart, allProducts } = useCart();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const [hasMounted, setHasMounted] = useState(false);
+  const { cart, clearCart, removeFromCart } = useCart();
   
-  useEffect(() => { setHasMounted(true); }, []);
+  // --- DIRECT BUY & SELECTION LOGIC ---
+  const [checkoutItems, setCheckoutItems] = useState<any[]>([]);
+  
+  const isDirectBuy = searchParams.get('direct') === 'true';
+  const selectedParam = searchParams.get('selected'); // <--- Brings back the cart checkbox logic
 
-  const mode = searchParams.get('mode'); 
-  const isBuyNow = mode === 'buy_now';
-
-  // --- ADDRESS BOOK STATE ---
-  const [showAddressModal, setShowAddressModal] = useState(false);
-  const [isAddingNew, setIsAddingNew] = useState(false);
-  const [savedAddresses, setSavedAddresses] = useState([
-    { id: 1, label: 'Home', name: 'Ali Bin Abu', phone: '+60 12 345 6789', address: 'No 12, Jalan Damai, 50000 Kuala Lumpur' },
-    { id: 2, label: 'Office', name: 'Ali (Work)', phone: '+60 12 345 6789', address: 'Level 23, Menara 1, 59200 Kuala Lumpur' }
-  ]);
-  const [selectedAddressId, setSelectedAddressId] = useState(1);
-  const [newAddress, setNewAddress] = useState({ label: 'Home', name: '', phone: '', address: '' });
-
-  const activeAddress = savedAddresses.find(a => a.id === selectedAddressId) || savedAddresses[0];
-
-  const handleSaveNewAddress = () => {
-      if (!newAddress.name || !newAddress.phone || !newAddress.address) {
-          alert("Please fill in all address fields.");
-          return;
+  useEffect(() => {
+    if (isDirectBuy) {
+      // 1. If it's a direct buy, pull the specific item from temporary memory!
+      const savedItem = sessionStorage.getItem('directBuyItem');
+      if (savedItem) {
+        setCheckoutItems([JSON.parse(savedItem)]);
       }
-      const newId = savedAddresses.length + 1;
-      setSavedAddresses([...savedAddresses, { ...newAddress, id: newId }]);
-      setSelectedAddressId(newId); 
-      setIsAddingNew(false); 
-      setShowAddressModal(false);
-      setNewAddress({ label: 'Home', name: '', phone: '', address: '' });
-  };
+    } else {
+      // 2. Normal Cart Checkout
+      let itemsToCheckout = cart;
 
-  // --- HELPERS ---
-  const getCartId = (item: any) => item.cartId || item.id;
-  const getQty = (item: any) => item?.quantity || item?.qty || 1;
-  const getPrice = (item: any) => Number(item?.price) || 0;
-
-  // --- CHECKOUT ITEM LOGIC (Fixed Selection) ---
-  const checkoutItems = useMemo(() => {
-    if (!hasMounted) return [];
-
-    if (isBuyNow) {
-        const id = Number(searchParams.get('id'));
-        const found = allProducts.find(p => p.id === id);
-        if (found) {
-             return [{
-                ...found,
-                quantity: Number(searchParams.get('qty')) || 1,
-                selectedColor: searchParams.get('color'),
-                selectedSize: searchParams.get('size'),
-                image: (found as any).colorImages && searchParams.get('color') 
-                    ? (found as any).colorImages[searchParams.get('color') as string] 
-                    : found.image
-             }];
-        }
-        return [];
-    }
-
-    // Fix: Filter by matching IDs (converted to string to be safe)
-    const selectedParam = searchParams.get('selected'); 
-    if (selectedParam) {
+      // 3. SMART FILTER: If they checked specific boxes in the cart, only keep those!
+      if (selectedParam) {
         const selectedIds = selectedParam.split(',');
-        return cart.filter((item: any) => selectedIds.includes(String(getCartId(item))));
+        itemsToCheckout = cart.filter(item => {
+           // Safe matching for unique cart IDs
+           const itemId = String(item.cartId || item.id);
+           return selectedIds.includes(itemId);
+        });
+      }
+
+      // Format them slightly so they match the direct buy structure
+      const formattedCart = itemsToCheckout.map(item => ({
+        product: item,
+        quantity: item.qty || 1,
+        variantName: [item.selectedColor, item.selectedSize].filter(Boolean).join(' | ')
+      }));
+      setCheckoutItems(formattedCart);
     }
+  }, [cart, isDirectBuy, selectedParam]);
 
-    return cart;
-  }, [isBuyNow, searchParams, cart, allProducts, hasMounted]);
+  // --- STATE ---
+  const [paymentMethod, setPaymentMethod] = useState('fpx');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
-  // --- CALCULATIONS ---
-  const calculatedSubtotal = checkoutItems.reduce((acc, item) => acc + (getPrice(item) * getQty(item)), 0);
-  const [infaqAmount, setInfaqAmount] = useState(0);
-  const [customInfaq, setCustomInfaq] = useState('');
-  const finalTotal = calculatedSubtotal + infaqAmount;
+  // Calculate Totals based on our new checkoutItems array
+  const subtotal = checkoutItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  const shipping = subtotal > 50 ? 0 : 5.00; // Free shipping over RM50!
+  const total = subtotal + shipping;
 
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('duitnow');
-
-  const handlePlaceOrder = (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const handlePlaceOrder = () => {
+    setIsProcessing(true);
+    
+    // Fake processing delay
     setTimeout(() => {
-        setLoading(false);
-        setSuccess(true);
-        if (!isBuyNow) clearCart(); 
-        window.scrollTo(0, 0); 
+      setIsProcessing(false);
+      setIsSuccess(true);
+      
+      // Cleanup Logic After Purchase
+      if (!isDirectBuy) {
+        if (selectedParam) {
+          // Only remove the specific items they bought from the cart
+          const selectedIds = selectedParam.split(',');
+          selectedIds.forEach(id => removeFromCart(id));
+        } else {
+          // If they bought everything, clear the whole cart
+          clearCart(); 
+        }
+      }
+      sessionStorage.removeItem('directBuyItem'); // Clean up Beli Terus memory
     }, 2000);
   };
 
-  if (success) {
+  // --- SUCCESS SCREEN ---
+  if (isSuccess) {
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-[#f9f9f9] px-4 text-center">
-            <div className="bg-green-100 p-6 rounded-full mb-6 animate-bounce-in"><CheckCircle size={64} className="text-[#006837]" /></div>
-            <h1 className="text-3xl font-black text-gray-900 mb-2">Order Confirmed!</h1>
-            <p className="text-gray-500 mb-8 max-w-md">Thank you. Your order will be shipped to:<br/><span className="font-bold text-gray-800">{activeAddress.address}</span></p>
-            <Link href="/" className="bg-[#006837] text-white px-8 py-4 rounded-xl font-bold shadow-lg hover:bg-[#00552b] transition active:scale-95">Back to Home</Link>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 selection:bg-[#0F6937] selection:text-white">
+        <div className="bg-white p-8 md:p-12 rounded-3xl shadow-xl max-w-lg w-full text-center border border-gray-100 animate-in zoom-in-95 duration-500">
+          <div className="w-24 h-24 bg-green-100 text-[#0F6937] rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+            <CheckCircle size={48} />
+          </div>
+          <h1 className="text-3xl font-black text-gray-900 mb-2">Alhamdulillah!</h1>
+          <p className="text-gray-500 mb-8 text-lg">Pesanan anda telah berjaya diterima dan sedang diproses.</p>
+          
+          <div className="bg-gray-50 p-6 rounded-2xl mb-8 border border-gray-100 text-left">
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-gray-500">No. Pesanan</span>
+              <span className="font-bold text-gray-900">#UM{Math.floor(Math.random() * 1000000)}</span>
+            </div>
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-gray-500">Jumlah Dibayar</span>
+              <span className="font-bold text-[#0F6937]">RM{total.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-500">Kaedah Pembayaran</span>
+              <span className="font-bold text-gray-900 uppercase">{paymentMethod}</span>
+            </div>
+          </div>
+
+          <Link href="/" className="block w-full bg-[#0F6937] text-white py-4 rounded-xl font-bold shadow-lg shadow-green-900/20 hover:bg-[#0A4A27] transition-all">
+            Kembali ke Laman Utama
+          </Link>
         </div>
+      </div>
     );
   }
 
-  if (!hasMounted) return null;
-
-  return (
-    <div className="min-h-screen bg-[#f9f9f9] py-10 px-4">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10">
-        
-        {/* LEFT COLUMN */}
-        <div>
-            <Link href={isBuyNow ? "/" : "/cart"} className="flex items-center gap-2 text-gray-500 hover:text-gray-900 mb-6 font-medium transition-colors"><ArrowLeft size={20} /> Back</Link>
-            <h1 className="text-3xl font-black text-gray-900 mb-8 flex items-center gap-3">Checkout {isBuyNow && <span className="text-xs font-bold bg-orange-100 text-orange-600 px-2 py-1 rounded border border-orange-200 uppercase tracking-wide">Buy Now</span>}</h1>
-
-            <form onSubmit={handlePlaceOrder} className="space-y-8">
-                
-                {/* 1. SHIPPING ADDRESS */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 transition-all hover:shadow-md">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-lg font-bold flex items-center gap-2"><MapPin size={20} className="text-[#006837]" /> Shipping Address</h2>
-                        {!isAddingNew && (
-                            <button type="button" onClick={() => setShowAddressModal(!showAddressModal)} className="text-xs font-bold text-[#006837] hover:bg-green-50 px-3 py-1.5 rounded-full border border-green-200 transition">{showAddressModal ? 'Close' : 'Change Address'}</button>
-                        )}
-                    </div>
-
-                    {isAddingNew ? (
-                        <div className="bg-gray-50 p-4 rounded-xl border border-green-200 animate-in fade-in zoom-in-95">
-                             <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-gray-800">Add New Address</h3><button type="button" onClick={() => setIsAddingNew(false)}><X size={18} className="text-gray-400 hover:text-red-500"/></button></div>
-                             <div className="space-y-3">
-                                 <div>
-                                     <label className="text-xs font-bold text-gray-500 uppercase">Label</label>
-                                     <div className="flex gap-2 mt-1">
-                                         {['Home', 'Office', 'Other'].map(l => (
-                                             <button key={l} type="button" onClick={() => setNewAddress({...newAddress, label: l})} className={`px-3 py-1 rounded-full text-xs font-bold border ${newAddress.label === l ? 'bg-[#006837] text-white border-[#006837]' : 'bg-white text-gray-600 border-gray-200'}`}>{l}</button>
-                                         ))}
-                                     </div>
-                                 </div>
-                                 <div><label className="text-xs font-bold text-gray-500 uppercase">Receiver Name</label><input type="text" className="w-full p-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#006837] text-sm" placeholder="e.g. Ali Bin Abu" value={newAddress.name} onChange={e => setNewAddress({...newAddress, name: e.target.value})}/></div>
-                                 <div><label className="text-xs font-bold text-gray-500 uppercase">Phone Number</label><input type="tel" className="w-full p-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#006837] text-sm" placeholder="e.g. +60 12 345 6789" value={newAddress.phone} onChange={e => setNewAddress({...newAddress, phone: e.target.value})}/></div>
-                                 <div><label className="text-xs font-bold text-gray-500 uppercase">Full Address</label><textarea rows={3} className="w-full p-2 rounded-lg border border-gray-200 focus:outline-none focus:border-[#006837] text-sm resize-none" placeholder="Unit No, Street, City, Postcode..." value={newAddress.address} onChange={e => setNewAddress({...newAddress, address: e.target.value})}/></div>
-                                 <button type="button" onClick={handleSaveNewAddress} className="w-full bg-[#006837] text-white py-2 rounded-lg font-bold text-sm shadow-sm hover:bg-[#00552b] transition flex items-center justify-center gap-2"><Save size={16}/> Save & Use Address</button>
-                             </div>
-                        </div>
-                    ) : showAddressModal ? (
-                        <div className="space-y-3 animate-in fade-in slide-in-from-top-2">
-                            {savedAddresses.map((addr) => (
-                                <div key={addr.id} onClick={() => { setSelectedAddressId(addr.id); setShowAddressModal(false); }} className={`p-4 rounded-xl border cursor-pointer flex justify-between items-center transition-all ${selectedAddressId === addr.id ? 'border-[#006837] bg-green-50/50 ring-1 ring-[#006837]' : 'border-gray-200 hover:border-green-300'}`}>
-                                    <div className="flex gap-3">
-                                        <div className={`mt-1 ${selectedAddressId === addr.id ? 'text-[#006837]' : 'text-gray-400'}`}>{addr.label === 'Home' ? <Home size={18} /> : <Briefcase size={18} />}</div>
-                                        <div><p className="font-bold text-sm text-gray-800">{addr.name} <span className="text-xs font-normal text-gray-500">({addr.label})</span></p><p className="text-xs text-gray-500 mt-0.5">{addr.phone}</p><p className="text-xs text-gray-600 mt-1 line-clamp-1">{addr.address}</p></div>
-                                    </div>
-                                    {selectedAddressId === addr.id && <CheckCircle size={18} className="text-[#006837]" />}
-                                </div>
-                            ))}
-                            <button type="button" onClick={() => setIsAddingNew(true)} className="w-full py-3 border border-dashed border-gray-300 rounded-xl text-sm font-bold text-gray-500 hover:text-[#006837] hover:border-[#006837] hover:bg-green-50 transition flex items-center justify-center gap-2"><Plus size={16}/> Add New Address</button>
-                        </div>
-                    ) : (
-                        <div className="bg-gray-50 p-4 rounded-xl border border-gray-200 flex gap-4 items-start">
-                            <div className="mt-1 text-gray-400">{activeAddress.label === 'Home' ? <Home size={20}/> : <Briefcase size={20}/>}</div>
-                            <div><p className="font-bold text-gray-900 text-sm">{activeAddress.name}</p><p className="text-xs text-gray-500 mb-1">{activeAddress.phone}</p><p className="text-sm text-gray-700 leading-snug">{activeAddress.address}</p></div>
-                        </div>
-                    )}
-                </div>
-
-                {/* 2. PAYMENT METHOD */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 className="text-lg font-bold flex items-center gap-2 mb-4"><CreditCard size={20} className="text-[#006837]" /> Payment Method</h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        {['duitnow', 'fpx', 'ewallet', 'card'].map((m) => (
-                             <div key={m} onClick={() => setPaymentMethod(m)} className={`cursor-pointer border-2 rounded-xl p-3 flex flex-col items-center justify-center gap-2 transition h-24 ${paymentMethod === m ? 'border-[#006837] bg-green-50' : 'border-gray-100 hover:border-gray-200'}`}>
-                                <div className={`w-10 h-6 rounded flex items-center justify-center text-white text-[9px] font-bold shadow-sm ${m === 'duitnow' ? 'bg-pink-600' : m === 'fpx' ? 'bg-orange-500' : m === 'ewallet' ? 'bg-blue-500' : 'bg-indigo-600'}`}>{m === 'ewallet' ? <Wallet size={12}/> : m === 'card' ? 'VISA' : m === 'duitnow' ? 'DuitNow' : 'FPX'}</div>
-                                <span className="text-[10px] font-bold text-gray-700 capitalize">{m === 'duitnow' ? 'QR Pay' : m === 'fpx' ? 'Banking' : m}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* 3. INFAQ */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 className="text-lg font-bold flex items-center gap-2 mb-2 text-[#006837]"><Heart size={20} fill="currentColor" /> Infaq & Sadaqah</h2>
-                    <div className="flex flex-wrap gap-2 mb-3">{[2, 5, 10, 50].map((amount) => (<button key={amount} type="button" onClick={() => {setInfaqAmount(amount); setCustomInfaq('');}} className={`px-4 py-2 rounded-lg text-sm font-bold border transition ${infaqAmount === amount && customInfaq === '' ? 'border-[#006837] bg-green-600 text-white' : 'border-gray-200 hover:border-green-500'}`}>RM{amount}</button>))}</div>
-                    <input type="number" placeholder="Other amount (RM)" value={customInfaq} onChange={(e) => {setCustomInfaq(e.target.value); setInfaqAmount(Number(e.target.value) || 0);}} className="w-full p-3 bg-gray-50 border rounded-lg focus:outline-none focus:border-[#006837] text-sm"/>
-                </div>
-
-                <button disabled={loading} className="w-full bg-[#006837] text-white h-16 rounded-xl font-bold text-lg shadow-lg shadow-green-200 hover:bg-[#00552b] transition active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-70">{loading ? <div className="flex items-center gap-2"><Loader2 className="animate-spin"/> Processing...</div> : `Pay RM${finalTotal.toFixed(2)}`}</button>
-            </form>
-        </div>
-
-        {/* RIGHT: SUMMARY */}
-        <div className="lg:sticky lg:top-10 h-fit">
-            <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
-                <h3 className="font-bold text-xl mb-6 border-b pb-4 text-gray-800">Order Summary</h3>
-                <div className="space-y-4 mb-6 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    {checkoutItems.map((item: any, i: number) => (
-                        <div key={i} className="flex gap-4">
-                            <img src={item.image || "https://placehold.co/100"} className="w-16 h-16 rounded-lg bg-gray-100 object-cover border"/>
-                            <div className="flex-1">
-                                <p className="text-sm font-bold text-gray-900 line-clamp-2">{item.name}</p>
-                                <p className="text-xs text-gray-500 mt-1">x{getQty(item)} {item.selectedSize && `• ${item.selectedSize}`}</p>
-                            </div>
-                            <p className="font-bold text-sm text-gray-900">RM{(getPrice(item) * getQty(item)).toFixed(2)}</p>
-                        </div>
-                    ))}
-                </div>
-                <div className="border-t pt-4 space-y-2">
-                    <div className="flex justify-between text-sm text-gray-500"><span>Subtotal</span><span>RM{calculatedSubtotal.toFixed(2)}</span></div>
-                    <div className="flex justify-between text-sm text-gray-500"><span>Shipping</span><span className="text-green-600 font-bold">Free</span></div>
-                    {infaqAmount > 0 && <div className="flex justify-between text-sm text-[#006837] font-bold"><span>Infaq</span><span>RM{infaqAmount.toFixed(2)}</span></div>}
-                    <div className="flex justify-between items-end mt-4 pt-4 border-t border-dashed border-gray-300">
-                        <span className="font-bold text-lg text-gray-700">Total</span>
-                        <span className="font-black text-2xl text-[#006837]">RM{finalTotal.toFixed(2)}</span>
-                    </div>
-                </div>
-                <div className="mt-6 bg-green-50 p-4 rounded-xl flex gap-3 items-start border border-green-100">
-                    <ShieldCheck className="text-[#006837] flex-shrink-0" size={20} />
-                    <p className="text-xs text-[#006837] font-medium leading-relaxed">Secure 256-bit SSL encrypted payment.</p>
-                </div>
-            </div>
+  // --- SAFETY CHECK ---
+  if (checkoutItems.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="flex flex-col items-center justify-center py-32 px-4 text-center">
+          <Receipt size={64} className="text-gray-300 mb-6" />
+          <h2 className="text-2xl font-black text-gray-900 mb-2">Tiada Item Untuk Dibayar</h2>
+          <p className="text-gray-500 mb-8 max-w-md">Sila tambah produk ke troli atau gunakan butang Beli Terus.</p>
+          <button onClick={() => router.back()} className="px-8 py-3 bg-[#0F6937] text-white rounded-full font-bold shadow-md hover:bg-[#0A4A27] transition-all">
+            Kembali
+          </button>
         </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F8F9FA] pb-24 font-sans selection:bg-[#0F6937] selection:text-white">
+      <Navbar />
+
+      <main className="max-w-5xl mx-auto px-4 py-8">
+        
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <button onClick={() => router.back()} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-500 hover:text-gray-900 shadow-sm border border-gray-200 transition-all">
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black text-gray-900">Pembayaran</h1>
+            <p className="text-sm text-gray-500 font-medium">Selesaikan pesanan anda dengan selamat.</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          
+          {/* LEFT SIDE: Details */}
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* Address Box */}
+            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2 text-lg">
+                  <MapPin className="text-[#0F6937]" size={20} /> Alamat Penghantaran
+                </h3>
+                <button className="text-sm font-bold text-[#0F6937] hover:underline">Tukar</button>
+              </div>
+              <div className="pl-7 border-l-2 border-gray-100 ml-2">
+                <p className="font-bold text-gray-900 mb-1">Ahmad Zaki <span className="text-gray-400 font-normal ml-2">012-3456789</span></p>
+                <p className="text-gray-500 text-sm leading-relaxed">
+                  No 12, Jalan Merdeka 1/2,<br />
+                  Taman Sri Aman,<br />
+                  43000 Kajang, Selangor
+                </p>
+              </div>
+            </div>
+
+            {/* Items Box */}
+            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2 text-lg mb-6 border-b border-gray-50 pb-4">
+                <Truck className="text-[#0F6937]" size={20} /> Maklumat Pesanan
+              </h3>
+              
+              <div className="space-y-6">
+                {checkoutItems.map((item, index) => (
+                  <div key={index} className="flex gap-4">
+                    <div className="w-20 h-20 md:w-24 md:h-24 bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden shrink-0">
+                      <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover mix-blend-multiply" />
+                    </div>
+                    <div className="flex-1 flex flex-col justify-center">
+                      <h4 className="font-bold text-gray-900 text-sm md:text-base line-clamp-2 leading-snug">{item.product.name}</h4>
+                      {item.variantName && (
+                        <p className="text-xs font-bold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-md mt-2 w-max">
+                          {item.variantName}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between mt-auto pt-2">
+                        <span className="font-bold text-[#0F6937]">RM{item.product.price.toFixed(2)}</span>
+                        <span className="text-sm font-bold text-gray-500">x{item.quantity}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Payment Method Box */}
+            <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2 text-lg mb-6 border-b border-gray-50 pb-4">
+                <CreditCard className="text-[#0F6937]" size={20} /> Kaedah Pembayaran
+              </h3>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {['fpx', 'duitnow', 'card', 'ewallet'].map((method) => (
+                  <button 
+                    key={method}
+                    onClick={() => setPaymentMethod(method)}
+                    className={`flex flex-col items-center justify-center gap-3 p-4 rounded-2xl border-2 transition-all h-28 ${
+                      paymentMethod === method 
+                      ? 'border-[#0F6937] bg-green-50 text-[#0F6937]' 
+                      : 'border-gray-100 hover:border-gray-200 text-gray-600'
+                    }`}
+                  >
+                    {method === 'fpx' && <div className="font-black text-xl italic tracking-tighter">FPX</div>}
+                    {method === 'duitnow' && <div className="font-black text-pink-600 text-lg">DuitNow</div>}
+                    {method === 'card' && <CreditCard size={28} />}
+                    {method === 'ewallet' && <Wallet size={28} />}
+                    
+                    <span className="text-xs font-bold uppercase tracking-wider">{method}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+          </div>
+
+          {/* RIGHT SIDE: Summary Widget */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-3xl p-6 shadow-xl shadow-gray-200/50 border border-gray-100 sticky top-24">
+              <h3 className="font-bold text-xl text-gray-900 mb-6">Ringkasan</h3>
+              
+              <div className="space-y-4 mb-6 text-sm font-medium">
+                <div className="flex justify-between text-gray-500">
+                  <span>Subtotal ({checkoutItems.length} item)</span>
+                  <span className="text-gray-900">RM{subtotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-gray-500">
+                  <span>Kos Penghantaran</span>
+                  {shipping === 0 ? (
+                    <span className="text-green-600 font-bold uppercase text-xs px-2 py-0.5 bg-green-50 rounded-full">Percuma</span>
+                  ) : (
+                    <span className="text-gray-900">RM{shipping.toFixed(2)}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="border-t border-dashed border-gray-200 pt-4 mb-8 flex justify-between items-end">
+                <span className="font-bold text-gray-900">Jumlah Besar</span>
+                <span className="text-3xl font-black text-[#0F6937]">RM{total.toFixed(2)}</span>
+              </div>
+
+              <button 
+                onClick={handlePlaceOrder}
+                disabled={isProcessing}
+                className="w-full bg-[#0F6937] text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-green-900/20 hover:bg-[#0A4A27] transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isProcessing ? 'Sila Tunggu...' : 'Buat Pesanan'}
+                {!isProcessing && <ChevronRight size={20} />}
+              </button>
+
+              <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-400 font-medium">
+                <ShieldCheck size={16} /> Pembayaran Disulitkan & Selamat
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
     </div>
   );
 }
