@@ -73,7 +73,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
               <Store className="text-[#0F6937]" size={24} />
               <div>
                 <h4 className="font-bold text-sm text-gray-900">Kedai Aktif</h4>
-                <p className="text-xs text-[#0F6937] font-medium">Khairul Aming...</p>
+                <p className="text-xs text-[#0F6937] font-medium">Store Name...</p>
               </div>
             </div>
           </div>
