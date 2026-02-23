@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useCart } from '../providers'; 
+import { useCart } from '../providers';
 import Link from 'next/link';
 import { Trash2, Minus, Plus, ShoppingBag, ArrowRight, CheckSquare, Square, ArrowLeft, X, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -10,16 +10,12 @@ export default function CartPage() {
   const { cart, removeFromCart, updateQuantity } = useCart();
   const router = useRouter();
 
-  // --- SAFE ID & VALUE HELPERS ---
-  // Fix: Prefer 'cartId' (unique) over 'id' (product ID) to avoid conflicts
   const getCartId = (item: any) => item.cartId || item.id;
   const getQty = (item: any) => item.quantity || item.qty || 1;
   const getPrice = (item: any) => Number(item.price) || 0;
 
-  // --- SELECTION STATE (By ID now, not index) ---
   const [selectedIds, setSelectedIds] = useState<any[]>([]);
 
-  // Default: Select all items when cart loads
   useEffect(() => {
     if (cart.length > 0 && selectedIds.length === 0) {
         setSelectedIds(cart.map((item) => getCartId(item)));
@@ -38,7 +34,6 @@ export default function CartPage() {
         : setSelectedIds(cart.map((item) => getCartId(item)));
   };
 
-  // --- TOTAL CALCULATION ---
   const total = useMemo(() => {
     return cart.reduce((acc, item) => {
         const id = getCartId(item);
@@ -48,25 +43,20 @@ export default function CartPage() {
 
   const selectedCount = selectedIds.length;
 
-  // --- ACTIONS ---
   const handleCheckout = () => {
       if (selectedCount === 0) return;
-      // Pass IDs instead of indices
       const idsString = selectedIds.join(',');
       router.push(`/checkout?mode=cart&selected=${idsString}`);
   };
 
-  // FIX: Robust Delete Handler
   const handleDelete = (item: any) => {
       if (window.confirm("Remove this item?")) {
           const id = getCartId(item);
           removeFromCart(id);
-          // Cleanup selection if deleted
           setSelectedIds(prev => prev.filter(i => i !== id));
       }
   };
 
-  // FIX: Robust Quantity Handler
   const handleQuantityChange = (item: any, change: number) => {
       const id = getCartId(item);
       const currentQty = getQty(item);
@@ -127,23 +117,24 @@ export default function CartPage() {
                                     {isSelected ? <CheckSquare size={24} fill="#e6f4ea" /> : <Square size={24} className="text-gray-300"/>}
                                 </button>
                                 <div className="w-20 h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-100 relative">
-                                    <img src={item.image || "https://placehold.co/100"} alt={item.name} className="w-full h-full object-cover" />
+                                    {/* UPDATED: Checks for variantImage first [cite: 37, 38] */}
+                                    <img src={item.variantImage || item.image || "https://placehold.co/100"} alt={item.name} className="w-full h-full object-cover" />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-start">
                                         <div>
                                             <h3 className="font-bold text-gray-900 truncate pr-2 text-sm sm:text-base">{item.name}</h3>
-                                            <p className="text-xs text-gray-500 mb-2">{item.selectedColor} {item.selectedSize && `• ${item.selectedSize}`}</p>
+                                            <p className="text-xs text-gray-500 mb-2">
+                                                {item.selectedColor && `Warna: ${item.selectedColor} `}
+                                                {item.selectedSize && `• Saiz: ${item.selectedSize}`}
+                                            </p>
                                         </div>
-                                        {/* FIX: Pass whole item to delete handler */}
                                         <button onClick={() => handleDelete(item)} className="text-gray-300 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition">
                                             <Trash2 size={18} />
                                         </button>
                                     </div>
                                     <div className="flex justify-between items-end mt-2">
                                         <div className="font-bold text-[#006837]">RM{getPrice(item).toFixed(2)}</div>
-                                        
-                                        {/* FIX: Use local handler for quantity */}
                                         <div className="flex items-center gap-3 bg-gray-50 rounded-lg p-1 border border-gray-200">
                                             <button onClick={() => handleQuantityChange(item, -1)} className="w-6 h-6 flex items-center justify-center bg-white rounded shadow-sm text-gray-600 hover:text-[#006837] disabled:opacity-50" disabled={qty <= 1}><Minus size={14} /></button>
                                             <span className="text-xs font-bold w-4 text-center select-none">{qty}</span>

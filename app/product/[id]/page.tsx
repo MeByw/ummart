@@ -4,7 +4,7 @@ import ProductDetailClient from './ProductDetailClient';
 import { Package } from 'lucide-react';
 import Link from 'next/link';
 
-export const revalidate = 0; 
+export const revalidate = 0;
 
 async function getProduct(id: number) {
   try {
@@ -13,7 +13,7 @@ async function getProduct(id: number) {
       .select('*')
       .eq('id', id)
       .maybeSingle();
-
+      
     if (error) {
       console.error("Supabase fetch error:", error);
       return null;
@@ -43,6 +43,6 @@ export default async function ProductDetailPage({ params }: { params: Promise<{ 
     );
   }
 
-  // Passes the fetched product safely to the Client file below
+  // Passes the safely fetched product to the Client file below
   return <ProductDetailClient product={product} />;
 }

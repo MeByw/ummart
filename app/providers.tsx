@@ -24,9 +24,10 @@ export interface Product {
 
 export interface CartItem extends Product {
   cartId: string;
-  qty: number; 
+  qty: number;
   selectedColor?: string;
   selectedSize?: string;
+  variantImage?: string; // ADDED: Stores the specific color image [cite: 57, 58]
 }
 
 export interface SellerProfile {
@@ -43,7 +44,8 @@ export interface SellerProfile {
 
 interface CartContextType {
   cart: CartItem[];
-  addToCart: (product: Product, qty: number, color?: string, size?: string) => void;
+  // UPDATED: Added variantImage to parameters [cite: 60]
+  addToCart: (product: Product, qty: number, color?: string, size?: string, variantImage?: string) => void;
   removeFromCart: (cartId: string) => void;
   updateQuantity: (cartId: string, qty: number) => void;
   clearCart: () => void;
@@ -119,14 +121,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [cart, sellerProfile, isInitialized]);
 
   // --- ACTIONS ---
-  const addToCart = (product: Product, qty: number, color?: string, size?: string) => {
+  // UPDATED: Added variantImage logic [cite: 71, 72]
+  const addToCart = (product: Product, qty: number, color?: string, size?: string, variantImage?: string) => {
     setCart((prev) => {
       const uniqueId = `${product.id}-${color || 'def'}-${size || 'def'}`;
       const existing = prev.find((item) => item.cartId === uniqueId);
       if (existing) {
         return prev.map((item) => item.cartId === uniqueId ? { ...item, qty: item.qty + qty } : item);
       }
-      return [...prev, { ...product, cartId: uniqueId, qty, selectedColor: color, selectedSize: size }];
+      return [...prev, { ...product, cartId: uniqueId, qty, selectedColor: color, selectedSize: size, variantImage }];
     });
   };
 

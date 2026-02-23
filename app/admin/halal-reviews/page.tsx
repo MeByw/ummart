@@ -12,7 +12,7 @@ export default function HalalAdminReviews() {
   const [authError, setAuthError] = useState('');
 
   // Set your secret admin password here!
-  const ADMIN_PASSWORD = "1234567890";
+  const ADMIN_PASSWORD = "1111";
 
   // --- DATA STATE ---
   const [applications, setApplications] = useState<any[]>([]);

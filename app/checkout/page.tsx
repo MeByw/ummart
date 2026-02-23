@@ -85,7 +85,10 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState('fpx');
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  
+  // INFAQ STATES
   const [infaqAmount, setInfaqAmount] = useState<number>(0);
+  const [infaqNote, setInfaqNote] = useState<string>('');
 
   const subtotal = checkoutItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
   const shipping = subtotal > 50 ? 0 : 5.00; 
@@ -131,9 +134,11 @@ export default function CheckoutPage() {
               <span className="text-gray-500">Kaedah Pembayaran</span>
               <span className="font-bold text-gray-900 uppercase">{paymentMethod}</span>
             </div>
+            {/* Added Infaq Note Display on Success */}
             {infaqAmount > 0 && (
               <div className="mt-4 pt-4 border-t border-gray-200 text-center">
-                <span className="font-bold text-[#0F6937] text-sm">Semoga infaq RM{infaqAmount} anda diberkati.</span>
+                <span className="font-bold text-[#0F6937] text-sm">Semoga infaq RM{infaqAmount.toFixed(2)} anda diberkati.</span>
+                {infaqNote && <p className="text-sm text-gray-600 mt-2 italic">"{infaqNote}"</p>}
               </div>
             )}
           </div>
@@ -281,7 +286,6 @@ export default function CheckoutPage() {
                         <option value="Perlis">Perlis</option>
                         <option value="Terengganu">Terengganu</option>
                         <option value="Negeri Sembilan">Negeri Sembilan</option>
-                        {/* Add more states as needed */}
                       </select>
                     </div>
                   </div>
@@ -307,7 +311,8 @@ export default function CheckoutPage() {
                 {checkoutItems.map((item, index) => (
                   <div key={index} className="flex gap-4">
                     <div className="w-20 h-20 md:w-24 md:h-24 bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden shrink-0">
-                      <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover mix-blend-multiply" />
+                      {/* Using the variantImage if available, fallback to default product image */}
+                      <img src={item.product.variantImage || item.product.image} alt={item.product.name} className="w-full h-full object-cover mix-blend-multiply" />
                     </div>
                     <div className="flex-1 flex flex-col justify-center">
                       <h4 className="font-bold text-gray-900 text-sm md:text-base line-clamp-2 leading-snug">{item.product.name}</h4>
@@ -327,7 +332,11 @@ export default function CheckoutPage() {
             </div>
 
             {/* Infaq Box */}
-            <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 md:p-8 rounded-3xl border border-green-200 shadow-sm">
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 md:p-8 rounded-3xl border border-green-200 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-green-100 rounded-bl-full -z-10 flex items-center justify-center opacity-40">
+                <HeartHandshake className="text-green-600 w-12 h-12 ml-6 mb-6" />
+              </div>
+              
               <h3 className="text-xl font-bold text-[#0F6937] mb-2 flex items-center gap-2">
                 <HeartHandshake size={20} /> Tabung Infaq UMMart
               </h3>
@@ -335,22 +344,55 @@ export default function CheckoutPage() {
                 Sumbangan anda akan disalurkan kepada golongan asnaf dan pembangunan usahawan baru. <span className="italic">"Tidak akan berkurang harta kerana bersedekah."</span>
               </p>
               
-              <div className="grid grid-cols-4 gap-3 mb-4">
-                {[0, 2, 5, 10].map((amt) => (
-                  <button 
-                    key={amt}
-                    onClick={() => setInfaqAmount(amt)}
-                    className={`py-3 rounded-xl text-sm font-bold border transition-all ${infaqAmount === amt ? 'bg-[#0F6937] text-white border-[#0F6937] shadow-lg shadow-green-900/20 scale-105' : 'bg-white text-gray-600 border-green-200 hover:border-[#0F6937] hover:text-[#0F6937]'}`}
-                  >
-                    {amt === 0 ? 'Tiada' : `RM${amt}`}
-                  </button>
-                ))}
+              <div className="space-y-5">
+                {/* Custom Amount Input & Quick Selectors */}
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Nilai Infaq (RM)</label>
+                  
+                  {/* Quick Selectors */}
+                  <div className="grid grid-cols-4 gap-3 mb-3">
+                    {[0, 2, 5, 10].map((amt) => (
+                      <button 
+                        key={amt}
+                        onClick={() => setInfaqAmount(amt)}
+                        className={`py-2 rounded-xl text-sm font-bold border transition-all ${infaqAmount === amt ? 'bg-[#0F6937] text-white border-[#0F6937] shadow-lg shadow-green-900/20 scale-105' : 'bg-white text-gray-600 border-green-200 hover:border-[#0F6937] hover:text-[#0F6937]'}`}
+                      >
+                        {amt === 0 ? 'Tiada' : `RM${amt}`}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Manual Input field */}
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">RM</span>
+                    <input 
+                      type="number" 
+                      min="0"
+                      value={infaqAmount || ''} 
+                      onChange={(e) => setInfaqAmount(Number(e.target.value) || 0)}
+                      placeholder="0.00"
+                      className="w-full pl-12 pr-4 py-3 rounded-xl border border-green-200 focus:ring-2 focus:ring-[#0F6937] focus:border-[#0F6937] outline-none transition bg-white"
+                    />
+                  </div>
+                </div>
+
+                {/* Note / Intention Field */}
+                {infaqAmount > 0 && (
+                  <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Nota / Niat Infaq <span className="text-gray-400 font-normal">(Pilihan)</span></label>
+                    <textarea 
+                      value={infaqNote}
+                      onChange={(e) => setInfaqNote(e.target.value)}
+                      placeholder="Contoh: Infaq atas nama ibu bapa saya..."
+                      rows={2}
+                      className="w-full px-4 py-3 rounded-xl border border-green-200 focus:ring-2 focus:ring-[#0F6937] focus:border-[#0F6937] outline-none transition bg-white resize-none"
+                    />
+                    <p className="text-xs text-[#0F6937] font-bold mt-2 animate-pulse">
+                      Alhamdulillah, sumbangan RM{infaqAmount.toFixed(2)} telah ditambah ke dalam pesanan.
+                    </p>
+                  </div>
+                )}
               </div>
-              {infaqAmount > 0 && (
-                <p className="text-xs text-[#0F6937] font-bold animate-pulse">
-                  Alhamdulillah, sumbangan RM{infaqAmount} telah ditambah!
-                </p>
-              )}
             </div>
 
             {/* Payment Method Box */}
