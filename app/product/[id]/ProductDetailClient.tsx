@@ -194,7 +194,8 @@ export default function ProductDetailClient({ product }: { product: any }) {
             <span className="text-gray-900">{product?.category}</span>
           </div>
 
-          <div className="relative w-full aspect-square lg:rounded-[2rem] overflow-hidden bg-white border-b lg:border border-gray-100 lg:shadow-sm mb-4">
+          {/* THE ONLY FIX IS HERE: Changed 'aspect-square' to a dynamic height so it doesn't break mobile */}
+          <div className="relative w-full h-[350px] sm:h-[450px] lg:h-[500px] lg:rounded-[2rem] overflow-hidden bg-white border-b lg:border border-gray-100 lg:shadow-sm mb-4">
             <img 
               src={activeImage || undefined} 
               alt={product?.name} 
