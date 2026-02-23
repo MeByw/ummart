@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+// 1. IMPORT SUSPENSE
+import React, { useState, useEffect, Suspense } from 'react';
 import Navbar from '@/components/Navbar';
 import { useCart } from '../providers';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -21,7 +22,8 @@ interface Address {
   state: string;
 }
 
-export default function CheckoutPage() {
+// 2. RENAME YOUR ORIGINAL FUNCTION TO 'CheckoutContent'
+function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { cart, clearCart, removeFromCart } = useCart();
@@ -134,7 +136,6 @@ export default function CheckoutPage() {
               <span className="text-gray-500">Kaedah Pembayaran</span>
               <span className="font-bold text-gray-900 uppercase">{paymentMethod}</span>
             </div>
-            {/* Added Infaq Note Display on Success */}
             {infaqAmount > 0 && (
               <div className="mt-4 pt-4 border-t border-gray-200 text-center">
                 <span className="font-bold text-[#0F6937] text-sm">Semoga infaq RM{infaqAmount.toFixed(2)} anda diberkati.</span>
@@ -170,7 +171,6 @@ export default function CheckoutPage() {
       <Navbar />
 
       <main className="max-w-5xl mx-auto px-4 py-8">
-        {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <button onClick={() => router.back()} className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-500 hover:text-gray-900 shadow-sm border border-gray-200 transition-all">
             <ArrowLeft size={20} />
@@ -183,10 +183,8 @@ export default function CheckoutPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
-          {/* LEFT SIDE: Details */}
           <div className="lg:col-span-2 space-y-6">
             
-            {/* Address Box */}
             <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm transition-all duration-300">
               <div className="flex items-center justify-between mb-4 border-b border-gray-50 pb-4">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2 text-lg">
@@ -199,7 +197,6 @@ export default function CheckoutPage() {
                 )}
               </div>
 
-              {/* View Active Address */}
               {!isEditingAddress && activeAddress && (
                 <div className="pl-7 border-l-2 border-green-200 ml-2 animate-in fade-in">
                   <p className="font-bold text-gray-900 mb-1">{activeAddress.name} <span className="text-gray-400 font-normal ml-2">{activeAddress.phone}</span></p>
@@ -210,7 +207,6 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* Edit/Select Address Mode */}
               {isEditingAddress && !isAddingNew && (
                 <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
                   {addresses.map((addr) => (
@@ -240,7 +236,6 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              {/* Add New Address Form */}
               {isAddingNew && (
                 <div className="space-y-4 bg-gray-50 p-5 rounded-2xl border border-gray-200 animate-in fade-in zoom-in-95">
                   <div className="flex justify-between items-center mb-2">
@@ -301,7 +296,6 @@ export default function CheckoutPage() {
               )}
             </div>
 
-            {/* Items Box */}
             <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
               <h3 className="font-bold text-gray-900 flex items-center gap-2 text-lg mb-6 border-b border-gray-50 pb-4">
                 <Truck className="text-[#0F6937]" size={20} /> Maklumat Pesanan
@@ -311,7 +305,6 @@ export default function CheckoutPage() {
                 {checkoutItems.map((item, index) => (
                   <div key={index} className="flex gap-4">
                     <div className="w-20 h-20 md:w-24 md:h-24 bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden shrink-0">
-                      {/* Using the variantImage if available, fallback to default product image */}
                       <img src={item.product.variantImage || item.product.image} alt={item.product.name} className="w-full h-full object-cover mix-blend-multiply" />
                     </div>
                     <div className="flex-1 flex flex-col justify-center">
@@ -331,7 +324,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Infaq Box */}
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 md:p-8 rounded-3xl border border-green-200 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-green-100 rounded-bl-full -z-10 flex items-center justify-center opacity-40">
                 <HeartHandshake className="text-green-600 w-12 h-12 ml-6 mb-6" />
@@ -345,11 +337,9 @@ export default function CheckoutPage() {
               </p>
               
               <div className="space-y-5">
-                {/* Custom Amount Input & Quick Selectors */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Nilai Infaq (RM)</label>
                   
-                  {/* Quick Selectors */}
                   <div className="grid grid-cols-4 gap-3 mb-3">
                     {[0, 2, 5, 10].map((amt) => (
                       <button 
@@ -362,7 +352,6 @@ export default function CheckoutPage() {
                     ))}
                   </div>
 
-                  {/* Manual Input field */}
                   <div className="relative">
                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-bold">RM</span>
                     <input 
@@ -376,7 +365,6 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Note / Intention Field */}
                 {infaqAmount > 0 && (
                   <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                     <label className="block text-sm font-bold text-gray-700 mb-1">Nota / Niat Infaq <span className="text-gray-400 font-normal">(Pilihan)</span></label>
@@ -395,7 +383,6 @@ export default function CheckoutPage() {
               </div>
             </div>
 
-            {/* Payment Method Box */}
             <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
               <h3 className="font-bold text-gray-900 flex items-center gap-2 text-lg mb-6 border-b border-gray-50 pb-4">
                 <CreditCard className="text-[#0F6937]" size={20} /> Kaedah Pembayaran
@@ -424,7 +411,6 @@ export default function CheckoutPage() {
 
           </div>
 
-          {/* RIGHT SIDE: Summary Widget */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-3xl p-6 shadow-xl shadow-gray-200/50 border border-gray-100 sticky top-24">
               <h3 className="font-bold text-xl text-gray-900 mb-6">Ringkasan</h3>
@@ -473,5 +459,14 @@ export default function CheckoutPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+// 3. EXPORT THE NEW WRAPPED COMPONENT
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Memuatkan halaman pembayaran...</div>}>
+      <CheckoutContent />
+    </Suspense>
   );
 }
