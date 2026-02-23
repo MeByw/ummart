@@ -129,9 +129,13 @@ export default function Navbar({ searchQuery, onSearch }: NavbarProps) {
               </div>
             </Link>
 
+            {/* PROFIL SAYA - Placeholder / Leads to nothing */}
             <Link 
-              href="/kira_zakat" 
-              onClick={() => setIsMobileMenuOpen(false)}
+              href="#" 
+              onClick={(e) => {
+                e.preventDefault(); // Prevents it from jumping to the top of the page
+                setIsMobileMenuOpen(false); // Just closes the menu
+              }}
               className="flex items-center gap-3 p-4 text-gray-600 font-bold"
             >
               <User size={20} />
