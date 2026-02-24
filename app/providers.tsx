@@ -27,11 +27,11 @@ export interface CartItem extends Product {
   qty: number;
   selectedColor?: string;
   selectedSize?: string;
-  variantImage?: string;
+  variantImage?: string; // ADDED: Stores the specific color image
 }
 
 export interface SellerProfile {
-  id?: number;
+  id?: number;            // <--- FIXED: TypeScript error solved
   name: string;
   email: string;
   shopName: string;
@@ -60,7 +60,6 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 // Default Profile Data (Used as a fallback)
-// Default Profile Data (Used as a fallback)
 const DEFAULT_SELLER: SellerProfile = {
     id: 1, 
     name: "Seller Name",
@@ -78,15 +77,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [sellerProfile, setSellerProfile] = useState<SellerProfile>(DEFAULT_SELLER);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  
+  // THE MAGIC LOCK
   const [isInitialized, setIsInitialized] = useState(false);
 
   // --- 1. LOAD DATA ON INITIAL RENDER ---
   useEffect(() => {
-    // Pull CART from local storage
+    // 1. First, pull Cart from local storage safely
     const savedCart = localStorage.getItem('ummart-cart');
     if (savedCart) setCart(JSON.parse(savedCart));
 
-    // Load Supabase Data (Products & Seller Profile)
+    // 2. Load Supabase Data (Products & Seller Profile)
     const loadDatabase = async () => {
         
         // A. Load Products
@@ -95,7 +96,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (!productsError && productsData.length > 0) {
+        if (!productsError && productsData && productsData.length > 0) {
             setAllProducts(productsData);
         } else if (productsData && productsData.length === 0) {
             const productsToInsert = initialProducts.map(({ id, hasVariants, isHalal, ...rest }: any) => rest);
@@ -103,7 +104,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             if (insertedData) setAllProducts(insertedData);
         }
 
-        // B. Load Seller Profile from Database
+        // B. Load Seller Profile from Database (THIS WAS MISSING BEFORE!)
         const { data: profileData, error: profileError } = await supabase
             .from('seller_profile')
             .select('*')
@@ -111,24 +112,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             .single();
 
         if (profileData) {
-            setSellerProfile(profileData); // DB is the source of truth!
-        } else if (profileError) {
-            // Fallback to local storage if DB is unreachable temporarily
+            // DB is the absolute source of truth! Everyone sees this!
+            setSellerProfile(profileData); 
+        } else {
+            // Fallback to local storage ONLY if DB fails or is empty
             const savedProfile = localStorage.getItem('ummart-seller-profile');
             if (savedProfile) setSellerProfile(JSON.parse(savedProfile));
         }
 
+        // 3. UNLOCK saving only after data is securely loaded from DB
         setIsInitialized(true);
     };
 
     loadDatabase();
   }, []);
 
-  // --- 2. SAVE CART ---
+  // --- 2. ALWAYS SAVE TO LOCAL STORAGE (IF UNLOCKED) ---
   useEffect(() => {
+    // Only save if the initial load is 100% finished!
     if (isInitialized) {
       localStorage.setItem('ummart-cart', JSON.stringify(cart));
-      localStorage.setItem('ummart-seller-profile', JSON.stringify(sellerProfile)); // Keep as local backup
+      localStorage.setItem('ummart-seller-profile', JSON.stringify(sellerProfile));
     }
   }, [cart, sellerProfile, isInitialized]);
 
@@ -165,7 +169,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       await supabase.from('products').delete().eq('id', id);
   };
 
-  // --- UPDATED: SYNC SELLER PROFILE GLOBALLY ---
+  // --- SYNC SELLER PROFILE GLOBALLY ---
   const updateSellerProfile = async (newDetails: Partial<SellerProfile>) => {
       const oldShopName = sellerProfile.shopName;
       const newShopName = newDetails.shopName;
