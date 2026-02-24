@@ -27,7 +27,7 @@ export interface CartItem extends Product {
   qty: number;
   selectedColor?: string;
   selectedSize?: string;
-  variantImage?: string; // ADDED: Stores the specific color image [cite: 57, 58]
+  variantImage?: string;
 }
 
 export interface SellerProfile {
@@ -45,7 +45,6 @@ export interface SellerProfile {
 
 interface CartContextType {
   cart: CartItem[];
-  // UPDATED: Added variantImage to parameters [cite: 60]
   addToCart: (product: Product, qty: number, color?: string, size?: string, variantImage?: string) => void;
   removeFromCart: (cartId: string) => void;
   updateQuantity: (cartId: string, qty: number) => void;
@@ -60,7 +59,8 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-// Default Profile Data
+// Default Profile Data (Used as a fallback)
+// Default Profile Data (Used as a fallback)
 const DEFAULT_SELLER: SellerProfile = {
     id: 1, 
     name: "Seller Name",
@@ -78,52 +78,61 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [sellerProfile, setSellerProfile] = useState<SellerProfile>(DEFAULT_SELLER);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
-  
-  // THE MAGIC LOCK
   const [isInitialized, setIsInitialized] = useState(false);
 
   // --- 1. LOAD DATA ON INITIAL RENDER ---
   useEffect(() => {
-    // 1. First, pull from local storage safely
+    // Pull CART from local storage
     const savedCart = localStorage.getItem('ummart-cart');
-    const savedProfile = localStorage.getItem('ummart-seller-profile');
-    
     if (savedCart) setCart(JSON.parse(savedCart));
-    if (savedProfile) setSellerProfile(JSON.parse(savedProfile));
 
-    // 2. UNLOCK saving only after data is securely loaded
-    setIsInitialized(true);
-
-    // 3. Load Supabase Products
+    // Load Supabase Data (Products & Seller Profile)
     const loadDatabase = async () => {
-        const { data, error } = await supabase
+        
+        // A. Load Products
+        const { data: productsData, error: productsError } = await supabase
             .from('products')
             .select('*')
             .order('created_at', { ascending: false });
 
-        if (!error && data.length > 0) {
-            setAllProducts(data);
-        } else if (data && data.length === 0) {
+        if (!productsError && productsData.length > 0) {
+            setAllProducts(productsData);
+        } else if (productsData && productsData.length === 0) {
             const productsToInsert = initialProducts.map(({ id, hasVariants, isHalal, ...rest }: any) => rest);
             const { data: insertedData } = await supabase.from('products').insert(productsToInsert).select();
             if (insertedData) setAllProducts(insertedData);
         }
+
+        // B. Load Seller Profile from Database
+        const { data: profileData, error: profileError } = await supabase
+            .from('seller_profile')
+            .select('*')
+            .eq('id', 1)
+            .single();
+
+        if (profileData) {
+            setSellerProfile(profileData); // DB is the source of truth!
+        } else if (profileError) {
+            // Fallback to local storage if DB is unreachable temporarily
+            const savedProfile = localStorage.getItem('ummart-seller-profile');
+            if (savedProfile) setSellerProfile(JSON.parse(savedProfile));
+        }
+
+        setIsInitialized(true);
     };
 
     loadDatabase();
   }, []);
 
-  // --- 2. ALWAYS SAVE TO LOCAL STORAGE (IF UNLOCKED) ---
+  // --- 2. SAVE CART ---
   useEffect(() => {
-    // Only save if the initial load is 100% finished!
     if (isInitialized) {
       localStorage.setItem('ummart-cart', JSON.stringify(cart));
-      localStorage.setItem('ummart-seller-profile', JSON.stringify(sellerProfile));
+      localStorage.setItem('ummart-seller-profile', JSON.stringify(sellerProfile)); // Keep as local backup
     }
   }, [cart, sellerProfile, isInitialized]);
 
   // --- ACTIONS ---
-  // UPDATED: Added variantImage logic [cite: 71, 72]
   const addToCart = (product: Product, qty: number, color?: string, size?: string, variantImage?: string) => {
     setCart((prev) => {
       const uniqueId = `${product.id}-${color || 'def'}-${size || 'def'}`;
@@ -136,10 +145,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeFromCart = (cartId: string) => setCart((prev) => prev.filter((item) => item.cartId !== cartId));
+
   const updateQuantity = (cartId: string, qty: number) => {
     if (qty < 1) return;
     setCart((prev) => prev.map((item) => (item.cartId === cartId ? { ...item, qty } : item)));
   };
+
   const clearCart = () => setCart([]);
 
   const addProduct = async (newProduct: Product) => {
@@ -154,12 +165,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       await supabase.from('products').delete().eq('id', id);
   };
 
+  // --- UPDATED: SYNC SELLER PROFILE GLOBALLY ---
   const updateSellerProfile = async (newDetails: Partial<SellerProfile>) => {
       const oldShopName = sellerProfile.shopName;
       const newShopName = newDetails.shopName;
 
+      // 1. Update UI Immediately
       setSellerProfile((prev) => ({ ...prev, ...newDetails }));
 
+      // 2. Push Update to Database! (Everyone sees this now)
+      await supabase.from('seller_profile').update(newDetails).eq('id', 1);
+
+      // 3. Update related products' seller names
       if (newShopName && newShopName !== oldShopName) {
           setAllProducts((prev) => prev.map(p => p.seller === oldShopName ? { ...p, seller: newShopName } : p));
           await supabase.from('products').update({ seller: newShopName }).eq('seller', oldShopName);
