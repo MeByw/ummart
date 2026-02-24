@@ -3,89 +3,103 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Package, ShoppingBag, Settings, Store, CheckCircle, Menu, X } from 'lucide-react';
+import { Store, Package, PlusCircle, ClipboardList, ShieldCheck, Home, Menu, X, LogOut } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SellerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const menuItems = [
-    { name: 'Dashboard', icon: LayoutDashboard, href: '/seller/overview' },
-    { name: 'Produk Saya', icon: Package, href: '/seller/my_products' },
-    { name: 'Pesanan', icon: ShoppingBag, href: '/seller/orders' },
-    { name: 'Sijil Halal', icon: CheckCircle, href: '/seller/halal' },
-    { name: 'Tetapan Kedai', icon: Settings, href: '/seller/settings' },
+  // Update the first item in this list:
+  const navItems = [
+    { name: 'Dashboard', href: '/seller', icon: Store }, // <-- Changed to /seller
+    { name: 'Produk Saya', href: '/seller/my_products', icon: Package },
+    { name: 'Tambah Produk', href: '/seller/add', icon: PlusCircle },
+    { name: 'Pesanan (Orders)', href: '/seller/orders', icon: ClipboardList },
+    { name: 'Status Halal', href: '/seller/halal', icon: ShieldCheck },
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col md:flex-row font-sans">
-      
-      {/* Mobile Top Bar for Sidebar Toggle */}
-      <div className="md:hidden bg-white border-b border-gray-200 p-4 flex justify-between items-center z-20 sticky top-0">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#0F6937] rounded-lg flex items-center justify-center text-white font-black">UM</div>
-          <span className="font-bold text-gray-900">Seller Center</span>
-        </Link>
-        <button onClick={() => setIsMobileNavOpen(!isMobileNavOpen)} className="text-gray-600">
-          {isMobileNavOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </div>
+    <div className="min-h-screen bg-[#Fdfdfc] flex relative overflow-hidden font-sans">
+      {/* 🌟 ISLAMIC GEOMETRIC BACKGROUND ART 🌟 */}
+      <div className="fixed inset-0 pointer-events-none z-0 bg-[url('https://www.transparenttextures.com/patterns/moroccan-flower.png')] opacity-[0.04] bg-repeat"></div>
+      <div className="fixed top-[-10%] left-[-10%] w-[40rem] h-[40rem] bg-[#0F6937]/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
 
-      {/* SIDEBAR (Hidden on mobile unless toggled open) */}
-      <div className={`${isMobileNavOpen ? 'block' : 'hidden'} md:block w-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-gray-200 p-6 flex-col md:min-h-screen transition-all md:sticky md:top-0 h-fit md:h-screen z-10`}>
-        
-        <Link href="/" className="hidden md:flex items-center gap-3 mb-12 group cursor-pointer">
-          <div className="w-10 h-10 bg-[#0F6937] rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-green-900/20 group-hover:scale-105 transition-transform">
-            UM
-          </div>
-          <div>
-            <h1 className="font-black text-xl text-gray-900 tracking-tight leading-none">UMMart</h1>
-            <p className="text-[10px] font-bold text-[#0F6937] uppercase tracking-wider mt-1">Seller Center</p>
-          </div>
-        </Link>
+      {/* --- DESKTOP SIDEBAR --- */}
+      <aside className="hidden md:flex flex-col w-72 bg-white/70 backdrop-blur-xl border-r border-[#D4AF37]/30 shadow-xl z-20 sticky top-0 h-screen">
+        <div className="p-8 border-b border-gray-100 flex items-center justify-between">
+          <Link href="/" className="flex flex-col">
+             <span className="text-2xl font-black text-[#0a4b27] tracking-tight flex items-center gap-1">
+                Pusat Penjual <span className="text-[#D4AF37] text-3xl leading-none">.</span>
+             </span>
+             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">UMMart Ekosistem</span>
+          </Link>
+        </div>
 
-        <div className="space-y-1">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 px-3 hidden md:block">Menu Utama</p>
-          {menuItems.map((item) => {
+        <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
+          {navItems.map((item) => {
             const isActive = pathname === item.href;
-            const Icon = item.icon;
             return (
-              <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setIsMobileNavOpen(false)} // Auto close menu on mobile after clicking
-                className={`flex items-center gap-3 px-4 py-3.5 rounded-xl font-bold transition-all duration-200 ${
+              <Link key={item.name} href={item.href}>
+                <div className={`flex items-center gap-4 px-4 py-3 rounded-2xl font-bold transition-all duration-300 ${
                   isActive 
-                    ? 'bg-[#0F6937] text-white shadow-md shadow-green-900/20' 
-                    : 'text-gray-500 hover:bg-green-50 hover:text-[#0F6937]'
-                }`}
-              >
-                <Icon size={20} strokeWidth={isActive ? 2.5 : 2} />
-                {item.name}
+                    ? 'bg-gradient-to-r from-[#0a4b27] to-[#0F6937] text-white shadow-lg shadow-[#0F6937]/20 border border-[#D4AF37]/40 scale-105' 
+                    : 'text-gray-600 hover:bg-green-50 hover:text-[#0F6937] border border-transparent'
+                }`}>
+                  <item.icon size={20} className={isActive ? "text-[#D4AF37]" : "text-gray-400"} />
+                  {item.name}
+                </div>
               </Link>
             );
           })}
-        </div>
+        </nav>
 
-        <div className="mt-8 pt-8 md:mt-auto hidden md:block">
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-5 border border-green-100">
-            <div className="flex items-center gap-3 mb-3">
-              <Store className="text-[#0F6937]" size={24} />
-              <div>
-                <h4 className="font-bold text-sm text-gray-900">Kedai Aktif</h4>
-                <p className="text-xs text-[#0F6937] font-medium">Store Name...</p>
+        <div className="p-6 border-t border-gray-100">
+          <Link href="/" className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 font-bold hover:bg-red-50 transition">
+            <LogOut size={20} /> Kembali ke Kedai
+          </Link>
+        </div>
+      </aside>
+
+      {/* --- MOBILE HEADER & MENU --- */}
+      <div className="md:hidden fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm px-4 py-3 flex items-center justify-between">
+        <span className="text-xl font-black text-[#0a4b27]">Seller Center</span>
+        <button onClick={() => setIsMobileMenuOpen(true)} className="p-2 bg-gray-100 rounded-full text-[#0a4b27]">
+          <Menu size={20} />
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsMobileMenuOpen(false)} className="fixed inset-0 bg-black/60 z-[60] backdrop-blur-sm md:hidden" />
+            <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="fixed top-0 right-0 h-full w-[80%] max-w-sm bg-white z-[70] shadow-2xl flex flex-col md:hidden">
+              <div className="p-6 bg-[#0a4b27] flex justify-between items-center relative overflow-hidden">
+                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/moroccan-flower.png')] opacity-20 mix-blend-overlay"></div>
+                 <h2 className="text-xl font-black text-white relative z-10">Menu Penjual</h2>
+                 <button onClick={() => setIsMobileMenuOpen(false)} className="text-white bg-white/20 p-2 rounded-full relative z-10"><X size={20}/></button>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
+              <div className="p-4 flex flex-col gap-2 flex-1 overflow-y-auto">
+                {navItems.map((item) => (
+                  <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className={`flex items-center gap-3 p-4 rounded-xl font-bold transition ${pathname === item.href ? 'bg-[#0F6937] text-white' : 'bg-gray-50 text-gray-700'}`}>
+                    <item.icon size={20} /> {item.name}
+                  </Link>
+                ))}
+              </div>
+              <div className="p-4 border-t border-gray-100">
+                 <Link href="/" className="flex items-center gap-3 p-4 rounded-xl font-bold text-red-600 bg-red-50"><Home size={20}/> Utama</Link>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
-      {/* MAIN CONTENT AREA */}
-      <div className="flex-1 bg-gray-50/50 p-4 md:p-8 overflow-x-hidden">
-        <div className="max-w-5xl mx-auto">
+      {/* --- MAIN CONTENT AREA --- */}
+      <main className="flex-1 relative z-10 w-full md:w-auto pt-16 md:pt-0 overflow-y-auto h-screen">
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="p-4 md:p-8 max-w-6xl mx-auto">
           {children}
-        </div>
-      </div>
+        </motion.div>
+      </main>
     </div>
   );
 }
