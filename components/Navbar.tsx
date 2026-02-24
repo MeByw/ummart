@@ -40,7 +40,7 @@ export default function Navbar({ searchQuery = '', onSearch }: NavbarProps) {
               </button>
               <Link href="/" className="flex flex-col">
                 <span className="text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-md flex items-center gap-1">
-                  UMMart <span className="text-[#D4AF37] text-4xl leading-none">.</span>
+                  UmMart <span className="text-[#D4AF37] text-4xl leading-none">.</span>
                 </span>
                 <span className="text-[9px] md:text-[10px] font-bold text-[#D4AF37] uppercase tracking-[0.2em]">
                   Ekosistem Halal
@@ -127,7 +127,7 @@ export default function Navbar({ searchQuery = '', onSearch }: NavbarProps) {
               <div className="p-6 bg-[#0a4b27] flex justify-between items-center relative overflow-hidden">
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/moroccan-flower.png')] opacity-20 mix-blend-overlay"></div>
                 <h2 className="text-xl font-black text-white relative z-10 flex items-center gap-1">
-                  UMMart <span className="text-[#D4AF37]">.</span>
+                  UmMart <span className="text-[#D4AF37]">.</span>
                 </h2>
                 <button onClick={() => setIsMenuOpen(false)} className="text-white/80 hover:text-white relative z-10 bg-white/10 p-2 rounded-full">
                   <X size={20} />
@@ -151,7 +151,7 @@ export default function Navbar({ searchQuery = '', onSearch }: NavbarProps) {
               
               {/* Drawer Footer */}
               <div className="p-6 text-center text-xs text-gray-400 font-medium">
-                Sokong BME 2026
+                Sokong BMF 2026
               </div>
             </motion.div>
           </>

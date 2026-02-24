@@ -193,11 +193,11 @@ export default function ZakatPage() {
         {/* TOP BAR */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
             <div>
-                <h1 className="text-2xl font-bold text-[#0F6937] flex items-center gap-2">
-                    <Calculator className="text-[#D4AF37]" strokeWidth={2.5} /> 
+                <h1 className="text-xl md:text-2xl font-bold text-[#0F6937] flex items-center gap-2">
+                    <Calculator className="text-[#D4AF37]" strokeWidth={2.5} size={24} /> 
                     Kalkulator Zakat Komprehensif
                 </h1>
-                <p className="text-xs text-gray-400 mt-1 ml-9">Dikemaskini: {currentDate}</p>
+                <p className="text-xs text-gray-400 mt-1 ml-8">Dikemaskini: {currentDate}</p>
             </div>
             
             <div className="flex items-center gap-3">
@@ -206,42 +206,47 @@ export default function ZakatPage() {
                     <p className="text-sm font-bold text-gray-800">{STATE_DATA.name}</p>
                 </div>
                 
-                <div className="relative" ref={dropdownRef}>
+                <div className="relative w-full md:w-auto" ref={dropdownRef}>
                     <button 
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-all border ${
+                        className={`w-full md:w-auto flex items-center justify-between md:justify-start gap-2 px-4 py-2.5 rounded-lg font-bold text-sm transition-all border ${
                             isDropdownOpen 
                             ? 'bg-green-50 border-[#0F6937] text-[#0F6937]' 
                             : 'bg-gray-100 border-transparent hover:bg-gray-200 text-gray-700'
                         }`}
                     >
-                        <MapPin size={16} className="text-[#0F6937]" />
-                        <span className="truncate max-w-[150px]">{selectedState.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
-                        <ChevronDown size={14} className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                        <div className="flex items-center gap-2">
+                            <MapPin size={16} className="text-[#0F6937] shrink-0" />
+                            <span className="truncate max-w-[200px] md:max-w-[150px]">{selectedState.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                        </div>
+                        <ChevronDown size={14} className={`shrink-0 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     
+                    {/* THE FIX: Mobile-responsive dropdown positioning and sizing */}
                     {isDropdownOpen && (
-                        <div className="absolute right-0 mt-2 w-72 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-[100] max-h-96 overflow-y-auto animate-in fade-in slide-in-from-top-2">
-                            <div className="p-2 bg-gray-50 border-b border-gray-100">
-                                <p className="text-[10px] font-bold text-gray-400 uppercase px-2">Pilih Pusat Zakat</p>
+                        <div className="absolute left-0 md:left-auto md:right-0 mt-2 w-[85vw] max-w-[320px] md:w-72 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-x-hidden overflow-y-auto z-[100] max-h-[55vh] md:max-h-96 animate-in fade-in slide-in-from-top-2">
+                            <div className="p-3 bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
+                                <p className="text-[10px] font-bold text-gray-500 uppercase px-1">Pilih Pusat Zakat</p>
                             </div>
-                            {Object.entries(ZAKAT_CENTRES).map(([key, data]) => (
-                                <button 
-                                    key={key}
-                                    onClick={() => {
-                                        setSelectedState(key as StateKey);
-                                        setIsDropdownOpen(false);
-                                    }}
-                                    className={`w-full text-left px-4 py-3 text-sm border-b border-gray-50 last:border-0 transition-colors ${
-                                        selectedState === key 
-                                        ? 'bg-green-50 text-[#0F6937] font-bold' 
-                                        : 'hover:bg-gray-50 text-gray-600'
-                                    }`}
-                                >
-                                    <span className="font-bold block text-[10px] uppercase text-gray-400 mb-0.5">{key.replace('_', ' ')}</span>
-                                    {data.name}
-                                </button>
-                            ))}
+                            <div className="py-1">
+                                {Object.entries(ZAKAT_CENTRES).map(([key, data]) => (
+                                    <button 
+                                        key={key}
+                                        onClick={() => {
+                                            setSelectedState(key as StateKey);
+                                            setIsDropdownOpen(false);
+                                        }}
+                                        className={`w-full text-left px-4 py-3 text-sm transition-colors ${
+                                            selectedState === key 
+                                            ? 'bg-green-50 text-[#0F6937] font-bold border-l-4 border-[#0F6937]' 
+                                            : 'hover:bg-gray-50 text-gray-600 border-l-4 border-transparent'
+                                        }`}
+                                    >
+                                        <span className="font-bold block text-[10px] uppercase text-gray-400 mb-0.5">{key.replace('_', ' ')}</span>
+                                        <span className="block truncate">{data.name}</span>
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -251,6 +256,7 @@ export default function ZakatPage() {
         <div className="grid lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-6">
                 
+                {/* THE FIX: Added whitespace-nowrap and mobile padding adjustments so tabs don't wrap badly */}
                 <div className="flex flex-wrap gap-2 mb-6">
                     {[
                         { id: 'pendapatan', icon: <Briefcase size={16}/>, label: 'Pendapatan' },
@@ -262,7 +268,7 @@ export default function ZakatPage() {
                         <button 
                             key={t.id}
                             onClick={() => { setActiveTab(t.id); }}
-                            className={`flex items-center gap-2 px-5 py-3 rounded-full text-sm font-bold transition-all border ${
+                            className={`flex items-center justify-center whitespace-nowrap gap-2 px-4 md:px-5 py-2.5 md:py-3 rounded-full text-xs md:text-sm font-bold transition-all border ${
                                 activeTab === t.id 
                                 ? 'bg-[#0F6937] text-white border-[#0F6937] shadow-lg shadow-green-900/10' 
                                 : 'bg-white text-gray-500 border-gray-200 hover:border-[#0F6937] hover:text-[#0F6937]'
@@ -273,7 +279,7 @@ export default function ZakatPage() {
                     ))}
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 min-h-[500px]">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 md:p-8 min-h-[500px]">
                     {activeTab === 'pendapatan' && (
                         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2">
                             <section>
@@ -321,7 +327,7 @@ export default function ZakatPage() {
                                     </div>
 
                                     {inputs.status === 'berkahwin' ? (
-                                        <div className="bg-green-50/50 p-5 rounded-xl border border-green-100 space-y-4 animate-in fade-in slide-in-from-top-1">
+                                        <div className="bg-green-50/50 p-4 md:p-5 rounded-xl border border-green-100 space-y-4 animate-in fade-in slide-in-from-top-1">
                                             <h4 className="text-xs font-bold text-green-800 uppercase flex items-center gap-2">
                                                 <Baby size={14} /> Tanggungan Keluarga
                                             </h4>
@@ -337,7 +343,7 @@ export default function ZakatPage() {
                                     ) : (
                                         <div className="p-4 rounded-xl border border-dashed border-gray-300 bg-gray-50 text-center">
                                             <p className="text-xs text-gray-400 flex items-center justify-center gap-2">
-                                                <Info size={14}/> Individu bujang hanya layak menuntut tolakan diri sendiri & ibu bapa.
+                                                <Info size={14} className="shrink-0"/> Individu bujang hanya layak menuntut tolakan diri sendiri & ibu bapa.
                                             </p>
                                         </div>
                                     )}
@@ -356,7 +362,7 @@ export default function ZakatPage() {
                     {activeTab === 'emas' && (
                         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2">
                              <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 flex gap-4">
-                                <div className="p-2 bg-yellow-100 text-yellow-700 rounded-lg h-fit"><Info size={20}/></div>
+                                <div className="p-2 bg-yellow-100 text-yellow-700 rounded-lg h-fit shrink-0"><Info size={20}/></div>
                                 <div className="text-xs text-yellow-800 space-y-1">
                                     <p><strong>Uruf Emas {STATE_DATA.name}: {URUF} gram.</strong></p>
                                     <p>Emas Pakai hanya dikenakan zakat jika berat melebihi Uruf. Emas Simpanan dikira sepenuhnya jika jumlah semua emas &gt; 85g.</p>
