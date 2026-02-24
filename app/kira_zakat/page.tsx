@@ -200,12 +200,14 @@ export default function ZakatPage() {
                 <p className="text-xs text-gray-400 mt-1 ml-8">Dikemaskini: {currentDate}</p>
             </div>
             
-            <div className="flex items-center gap-3">
-                <div className="text-right hidden md:block">
+            {/* THE FIX: `w-full md:w-auto` explicitly locks the container width on mobile */}
+            <div className="flex items-center gap-3 w-full md:w-auto">
+                <div className="text-right hidden md:block shrink-0">
                     <p className="text-[10px] font-bold text-gray-400 uppercase">Pusat Pungutan</p>
                     <p className="text-sm font-bold text-gray-800">{STATE_DATA.name}</p>
                 </div>
                 
+                {/* Parent Relative Container */}
                 <div className="relative w-full md:w-auto" ref={dropdownRef}>
                     <button 
                         onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -217,14 +219,15 @@ export default function ZakatPage() {
                     >
                         <div className="flex items-center gap-2">
                             <MapPin size={16} className="text-[#0F6937] shrink-0" />
-                            <span className="truncate max-w-[200px] md:max-w-[150px]">{selectedState.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                            {/* Truncated text just in case the state name is too long */}
+                            <span className="truncate">{selectedState.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
                         </div>
                         <ChevronDown size={14} className={`shrink-0 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     
-                    {/* THE FIX: Mobile-responsive dropdown positioning and sizing */}
+                    {/* THE FIX: w-full correctly matches the button width on mobile, right-0 md:right-auto forces correct anchor */}
                     {isDropdownOpen && (
-                        <div className="absolute left-0 md:left-auto md:right-0 mt-2 w-[85vw] max-w-[320px] md:w-72 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-x-hidden overflow-y-auto z-[100] max-h-[55vh] md:max-h-96 animate-in fade-in slide-in-from-top-2">
+                        <div className="absolute top-full left-0 right-0 md:left-auto md:right-0 mt-2 w-full md:w-72 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-x-hidden overflow-y-auto z-[9999] max-h-[50vh] animate-in fade-in slide-in-from-top-2">
                             <div className="p-3 bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
                                 <p className="text-[10px] font-bold text-gray-500 uppercase px-1">Pilih Pusat Zakat</p>
                             </div>
@@ -256,7 +259,6 @@ export default function ZakatPage() {
         <div className="grid lg:grid-cols-12 gap-8">
             <div className="lg:col-span-8 space-y-6">
                 
-                {/* THE FIX: Added whitespace-nowrap and mobile padding adjustments so tabs don't wrap badly */}
                 <div className="flex flex-wrap gap-2 mb-6">
                     {[
                         { id: 'pendapatan', icon: <Briefcase size={16}/>, label: 'Pendapatan' },
