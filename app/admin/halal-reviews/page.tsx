@@ -107,7 +107,7 @@ export default function HalalAdminReviews() {
             <ShieldCheck size={36} className="text-gray-900" />
             <div>
               <h1 className="text-2xl md:text-3xl font-black text-gray-900">Semakan Halal JAKIM</h1>
-              <p className="text-sm font-medium text-gray-500 mt-1">Panel Pengurusan UMMart Admin</p>
+              <p className="text-sm font-medium text-gray-500 mt-1">Panel Pengurusan UmMart Admin</p>
             </div>
           </div>
           <button onClick={() => setIsAuthenticated(false)} className="text-sm font-bold text-red-600 bg-red-50 px-4 py-2 rounded-lg hover:bg-red-100 transition">

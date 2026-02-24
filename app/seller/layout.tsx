@@ -32,7 +32,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
              <span className="text-2xl font-black text-[#0a4b27] tracking-tight flex items-center gap-1">
                 Pusat Penjual <span className="text-[#D4AF37] text-3xl leading-none">.</span>
              </span>
-             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">UMMart Ekosistem</span>
+             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">UmMart Ekosistem</span>
           </Link>
         </div>
 

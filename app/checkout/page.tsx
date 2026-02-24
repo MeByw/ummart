@@ -330,7 +330,7 @@ function CheckoutContent() {
               </div>
               
               <h3 className="text-xl font-bold text-[#0F6937] mb-2 flex items-center gap-2">
-                <HeartHandshake size={20} /> Tabung Infaq UMMart
+                <HeartHandshake size={20} /> Tabung Infaq UmMart
               </h3>
               <p className="text-sm text-gray-600 mb-6 leading-relaxed">
                 Sumbangan anda akan disalurkan kepada golongan asnaf dan pembangunan usahawan baru. <span className="italic">"Tidak akan berkurang harta kerana bersedekah."</span>

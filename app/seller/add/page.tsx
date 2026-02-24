@@ -158,7 +158,7 @@ export default function AddProductPage() {
                 category: formData.category,
                 description: formData.description,
                 image: formData.image,
-                seller: sellerProfile?.shopName || sellerProfile?.name || "Ummart Seller", 
+                seller: sellerProfile?.shopName || sellerProfile?.name || "UmMart Seller", 
                 rating: 5.0, // Start new products at 5.0 so they look good!
                 reviews: 0,
                 sold: 0,

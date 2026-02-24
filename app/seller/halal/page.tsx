@@ -160,7 +160,7 @@ export default function HalalApplicationPage() {
               <h1 className="text-2xl md:text-3xl font-black text-gray-900 flex items-center gap-2">
                 <ShieldCheck className="text-[#0F6937]" size={32} /> Status Halal JAKIM
               </h1>
-              <p className="text-sm text-gray-500 font-medium mt-1">Sistem Pra-Kelayakan UMMart untuk Peniaga</p>
+              <p className="text-sm text-gray-500 font-medium mt-1">Sistem Pra-Kelayakan UmMart untuk Peniaga</p>
             </div>
           </div>
 
@@ -185,7 +185,7 @@ export default function HalalApplicationPage() {
                   <CheckCircle size={48} />
                 </div>
                 <h2 className="text-2xl font-black text-gray-900 mb-2">Alhamdulillah! Disahkan Halal</h2>
-                <p className="text-gray-500 mb-6 max-w-md mx-auto">Kedai anda kini memaparkan lencana Halal Rasmi di UMMart.</p>
+                <p className="text-gray-500 mb-6 max-w-md mx-auto">Kedai anda kini memaparkan lencana Halal Rasmi di UmMart.</p>
                 <div className="inline-flex items-center gap-2 bg-green-50 text-[#0F6937] px-4 py-2 rounded-xl text-sm font-bold border border-green-200">
                   Status: Aktif & Lulus
                 </div>
@@ -226,7 +226,7 @@ export default function HalalApplicationPage() {
             <h1 className="text-2xl md:text-3xl font-black text-gray-900 flex items-center gap-2">
               <ShieldCheck className="text-[#0F6937]" size={32} /> Permohonan Halal JAKIM
             </h1>
-            <p className="text-sm text-gray-500 font-medium mt-1">Sistem Pra-Kelayakan UMMart untuk Peniaga</p>
+            <p className="text-sm text-gray-500 font-medium mt-1">Sistem Pra-Kelayakan UmMart untuk Peniaga</p>
           </div>
         </div>
 
@@ -271,7 +271,7 @@ export default function HalalApplicationPage() {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1.5">Nama Syarikat (Seperti dalam SSM) *</label>
-                  <input type="text" value={formData.companyName} onChange={(e) => setFormData({...formData, companyName: e.target.value})} placeholder="Cth: UMMart Enterprise" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#0F6937] transition" />
+                  <input type="text" value={formData.companyName} onChange={(e) => setFormData({...formData, companyName: e.target.value})} placeholder="Cth: UmMart Enterprise" className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-[#0F6937] transition" />
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-1.5">Nombor Pendaftaran SSM *</label>
@@ -338,7 +338,7 @@ export default function HalalApplicationPage() {
               </div>
               <h2 className="text-2xl font-black text-gray-900 mb-3">Dokumen Berjaya Diterima!</h2>
               <p className="text-gray-500 max-w-md mx-auto mb-8 leading-relaxed text-sm md:text-base">
-                Pasukan pematuhan Halal UMMart akan menyemak dokumen anda dalam masa 3-5 hari bekerja. Kami akan menghubungi anda jika terdapat dokumen yang perlu diperbaiki.
+                Pasukan pematuhan Halal UmMart akan menyemak dokumen anda dalam masa 3-5 hari bekerja. Kami akan menghubungi anda jika terdapat dokumen yang perlu diperbaiki.
               </p>
               <Link href="/seller" className="inline-flex items-center justify-center bg-[#0F6937] text-white px-8 py-4 rounded-xl font-bold shadow-lg shadow-green-900/20 hover:bg-[#0A4A27] transition-all">
                 Kembali ke Dashboard

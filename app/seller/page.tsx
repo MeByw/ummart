@@ -93,7 +93,7 @@ export default function SellerDashboardPage() {
                         <h1 className="text-2xl md:text-4xl font-black text-white tracking-tight drop-shadow-md">{shopName || 'Nama Kedai'}</h1>
                     )}
                     <p className="text-[#D4AF37] font-bold mt-2 flex items-center gap-2 text-sm bg-black/20 w-fit px-3 py-1 rounded-full border border-white/10 backdrop-blur-sm">
-                      <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse"></span> Penjual Sah UMMart
+                      <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse"></span> Penjual Sah UmMart
                     </p>
                 </div>
             </div>
@@ -141,10 +141,10 @@ export default function SellerDashboardPage() {
           <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <div className="space-y-3 max-w-2xl">
               <div className="inline-flex items-center gap-1.5 bg-[#D4AF37]/20 text-[#D4AF37] px-4 py-1.5 rounded-full text-xs font-black tracking-widest uppercase backdrop-blur-md border border-[#D4AF37]/50 shadow-sm">
-                <Award size={14} /> Kelebihan Peniaga UMMart
+                <Award size={14} /> Kelebihan Peniaga UmMart
               </div>
               <h2 className="text-2xl md:text-3xl font-black tracking-tight drop-shadow-md">Sistem Pra-Kelayakan Halal JAKIM</h2>
-              <p className="text-green-50/90 text-sm md:text-base leading-relaxed font-medium">Tingkatkan jualan dan raih kepercayaan pelanggan dengan status Halal. Muat naik dokumen asas anda dan pasukan UMMart akan membimbing anda melengkapkan permohonan MYeHALAL secara percuma.</p>
+              <p className="text-green-50/90 text-sm md:text-base leading-relaxed font-medium">Tingkatkan jualan dan raih kepercayaan pelanggan dengan status Halal. Muat naik dokumen asas anda dan pasukan UmMart akan membimbing anda melengkapkan permohonan MYeHALAL secara percuma.</p>
             </div>
             <Link href="/seller/halal" className="group inline-flex items-center justify-center gap-2 bg-[#D4AF37] text-[#0a4b27] px-8 py-4 rounded-xl font-black shadow-lg hover:bg-[#F9E596] active:scale-95 transition-all duration-300 shrink-0 w-full md:w-auto">
               <FileText size={20} /> Mula Memohon <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
