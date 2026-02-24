@@ -31,6 +31,7 @@ export interface CartItem extends Product {
 }
 
 export interface SellerProfile {
+  id?: number;
   name: string;
   email: string;
   shopName: string;
@@ -61,15 +62,16 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 // Default Profile Data
 const DEFAULT_SELLER: SellerProfile = {
-    name: "Khairul Aming",
-    email: "ka@sambalnyet.com",
-    shopName: "Khairul Aming Official",
+    id: 1, 
+    name: "Seller Name",
+    email: "seller@store.com",
+    shopName: "Store Name",
     image: "", 
     description: "Welcome to my official shop!",
-    rating: 5.0,
-    location: "Kuala Lumpur, MY",
+    rating: 0.0,
+    location: "Malaysia",
     isMuslimOwned: true,
-    halalCertStatus: 'approved'
+    halalCertStatus: 'none'
 };
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
