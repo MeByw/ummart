@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { products as initialProducts } from './products';
 import { supabase } from '../lib/supabase';
+import { Toaster, toast } from 'react-hot-toast';
 
 // --- SHARED TYPES ---
 export interface Product {
@@ -146,9 +147,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, { ...product, cartId: uniqueId, qty, selectedColor: color, selectedSize: size, variantImage }];
     });
+    toast.success(`${product.name} ditambah ke troli!`);
   };
 
-  const removeFromCart = (cartId: string) => setCart((prev) => prev.filter((item) => item.cartId !== cartId));
+  const removeFromCart = (cartId: string) => {
+    setCart((prev) => prev.filter((item) => item.cartId !== cartId));
+    toast.success('Produk dibuang dari troli.');
+  };
 
   const updateQuantity = (cartId: string, qty: number) => {
     if (qty < 1) return;
@@ -162,11 +167,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       setAllProducts((prev) => [newProduct, ...prev]);
       const { data } = await supabase.from('products').insert([productData]).select();
       if (data) setAllProducts((prev) => prev.map(p => p.id === newProduct.id ? data[0] : p));
+      toast.success('Produk berjaya ditambah!');
   };
 
   const deleteProduct = async (id: number) => {
       setAllProducts((prev) => prev.filter(p => p.id !== id));
       await supabase.from('products').delete().eq('id', id);
+      toast.success('Produk telah dibuang.');
   };
 
   // --- SYNC SELLER PROFILE GLOBALLY ---
@@ -185,6 +192,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           setAllProducts((prev) => prev.map(p => p.seller === oldShopName ? { ...p, seller: newShopName } : p));
           await supabase.from('products').update({ seller: newShopName }).eq('seller', oldShopName);
       }
+      toast.success('Profil Penjual berjaya dikemaskini!');
   };
 
   const cartTotal = cart.reduce((total, item) => total + item.price * item.qty, 0);
@@ -195,6 +203,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         allProducts, addProduct, deleteProduct, sellerProfile, updateSellerProfile 
     }}>
       {children}
+      
+      {/* 🌟 FIX: Mobile Responsive Toaster Notification 🌟 */}
+      <Toaster 
+        position="bottom-center"
+        toastOptions={{
+          className: 'w-[90vw] md:w-auto max-w-[400px] text-sm md:text-base mb-20 md:mb-6',
+          style: {
+            borderRadius: '16px',
+            background: '#ffffff',
+            color: '#0F6937',
+            fontWeight: 'bold',
+            border: '2px solid #E5E7EB',
+            boxShadow: '0 10px 25px -5px rgba(15, 105, 55, 0.15)',
+            zIndex: 9999, // Ensures it sits above the fixed background pattern
+          },
+          success: {
+            iconTheme: {
+              primary: '#0F6937',
+              secondary: '#ffffff',
+            },
+          },
+        }} 
+      />
     </CartContext.Provider>
   );
 }

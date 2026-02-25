@@ -42,11 +42,10 @@ export default function HomePage() {
   return (
     <motion.div 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}
-      className="min-h-screen bg-[#Fdfdfc] font-sans text-gray-800 relative z-0 pb-24"
+      // THE FIX: Changed bg-[#Fdfdfc] to bg-transparent so the global pattern shows through!
+      className="min-h-screen bg-transparent font-sans text-gray-800 relative z-0 pb-24"
     >
-      {/* 🌟 ISLAMIC GEOMETRIC BACKGROUND ART 🌟 */}
-      <div className="fixed inset-0 pointer-events-none z-[-2] bg-[url('https://www.transparenttextures.com/patterns/moroccan-flower.png')] opacity-[0.06] bg-repeat"></div>
-      {/* Soft glowing ambient orbs */}
+      {/* Soft glowing ambient orbs (Kept these for the premium feel) */}
       <div className="fixed top-0 left-0 w-[50vw] h-[50vh] bg-[#0F6937]/5 rounded-full blur-[120px] pointer-events-none z-[-1]"></div>
       <div className="fixed bottom-0 right-0 w-[50vw] h-[50vh] bg-[#D4AF37]/10 rounded-full blur-[120px] pointer-events-none z-[-1]"></div>
 
@@ -133,13 +132,13 @@ export default function HomePage() {
 
         {/* --- PRODUCT FEED SECTION --- */}
         <div className="mb-8">
-           <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b-2 border-gray-100 pb-4">
+           <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4 border-b-2 border-gray-100/50 pb-4">
              <div>
-               <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight">
+               <h2 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tight drop-shadow-sm">
                  {searchQuery ? `Hasil Carian: "${searchQuery}"` : activeCategory === 'Semua' ? 'Disyorkan Untuk Anda' : activeCategory}
                </h2>
              </div>
-             <span className="text-sm font-bold text-[#D4AF37] bg-[#0a4b27] shadow-sm px-5 py-2.5 rounded-full inline-flex items-center gap-2">
+             <span className="text-sm font-bold text-[#D4AF37] bg-[#0a4b27] shadow-lg px-5 py-2.5 rounded-full inline-flex items-center gap-2">
                <Sparkles size={16} className="fill-[#D4AF37]"/> {filteredProducts.length} Penemuan
              </span>
            </div>
@@ -148,7 +147,7 @@ export default function HomePage() {
           {allProducts.length === 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
               {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-                <div key={n} className="bg-white/60 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-gray-100 animate-pulse">
+                <div key={n} className="bg-white/80 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-gray-100 animate-pulse">
                   <div className="w-full aspect-square bg-gray-200/50 rounded-xl mb-4"></div>
                   <div className="h-4 bg-gray-200/50 rounded w-3/4 mb-2"></div>
                   <div className="h-3 bg-gray-200/50 rounded w-1/2 mb-4"></div>
@@ -163,18 +162,19 @@ export default function HomePage() {
                     layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.2 }}
                     key={product.id} className="hover:-translate-y-2 transition-transform duration-300"
                   >
+                    {/* The ProductCard itself handles its own white background, so the spacing between them will show the global gold pattern */}
                     <ProductCard product={product} />
                   </motion.div>
                 ))}
               </AnimatePresence>
             </motion.div>
           ) : (
-             <div className="flex flex-col items-center justify-center py-32 bg-white/60 backdrop-blur-md rounded-[3rem] border border-dashed border-gray-300 shadow-sm">
-                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-md border border-gray-100">
-                  <Search size={32} className="text-gray-300" />
+             <div className="flex flex-col items-center justify-center py-32 bg-white/80 backdrop-blur-xl rounded-[3rem] border border-dashed border-[#D4AF37]/50 shadow-sm">
+                <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-6 shadow-xl border border-gray-100">
+                  <Search size={32} className="text-[#0a4b27]" />
                 </div>
-                <h3 className="text-xl font-black text-gray-800 mb-2">Tiada Padanan</h3>
-                <p className="text-gray-500 max-w-sm text-center">Kami tidak menjumpai produk untuk carian anda. Cuba gunakan kata kunci yang lebih umum.</p>
+                <h3 className="text-xl font-black text-[#0a4b27] mb-2 drop-shadow-sm">Tiada Padanan</h3>
+                <p className="text-gray-500 max-w-sm text-center font-medium">Kami tidak menjumpai produk untuk carian anda. Cuba gunakan kata kunci yang lebih umum.</p>
              </div>
           )}
         </div>
