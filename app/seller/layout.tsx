@@ -3,20 +3,23 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Store, Package, PlusCircle, ClipboardList, ShieldCheck, Home, Menu, X, LogOut } from 'lucide-react';
+import { Store, Package, PlusCircle, ClipboardList, ShieldCheck, Home, Menu, X, LogOut, UserCircle, Settings } from 'lucide-react'; 
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function SellerLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Update the first item in this list:
+  // Added "Profil Kedai" to the navigation array
   const navItems = [
-    { name: 'Dashboard', href: '/seller', icon: Store }, // <-- Changed to /seller
+    { name: 'Dashboard', href: '/seller', icon: Store },
     { name: 'Produk Saya', href: '/seller/my_products', icon: Package },
     { name: 'Tambah Produk', href: '/seller/add', icon: PlusCircle },
     { name: 'Pesanan (Orders)', href: '/seller/orders', icon: ClipboardList },
     { name: 'Status Halal', href: '/seller/halal', icon: ShieldCheck },
+    { name: 'Profil Kedai', href: '/seller/store_profile', icon: UserCircle }, // 🌟 ADDED PROFILE BUTTON 🌟
+    { name: 'Tetapan', href: '/seller/settings', icon: Settings },
+    
   ];
 
   return (
@@ -30,7 +33,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
         <div className="p-8 border-b border-gray-100 flex items-center justify-between">
           <Link href="/" className="flex flex-col">
              <span className="text-2xl font-black text-[#0a4b27] tracking-tight flex items-center gap-1">
-                Pusat Penjual <span className="text-[#D4AF37] text-3xl leading-none">.</span>
+               Pusat Penjual <span className="text-[#D4AF37] text-3xl leading-none">.</span>
              </span>
              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">UmMart Ekosistem</span>
           </Link>
