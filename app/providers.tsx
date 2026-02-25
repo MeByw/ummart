@@ -28,11 +28,11 @@ export interface CartItem extends Product {
   qty: number;
   selectedColor?: string;
   selectedSize?: string;
-  variantImage?: string; // ADDED: Stores the specific color image
+  variantImage?: string;
 }
 
 export interface SellerProfile {
-  id?: number;            // <--- FIXED: TypeScript error solved
+  id?: number;
   name: string;
   email: string;
   shopName: string;
@@ -62,16 +62,16 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 // Default Profile Data (Used as a fallback)
 const DEFAULT_SELLER: SellerProfile = {
-    id: 1, 
-    name: "Seller Name",
-    email: "seller@store.com",
-    shopName: "Store Name",
-    image: "", 
-    description: "Welcome to my official shop!",
-    rating: 0.0,
-    location: "Malaysia",
-    isMuslimOwned: true,
-    halalCertStatus: 'none'
+  id: 1, 
+  name: "Seller Name",
+  email: "seller@store.com",
+  shopName: "Store Name",
+  image: "", 
+  description: "Welcome to my official shop!",
+  rating: 0.0,
+  location: "Malaysia",
+  isMuslimOwned: true,
+  halalCertStatus: 'none'
 };
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
@@ -84,13 +84,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // --- 1. LOAD DATA ON INITIAL RENDER ---
   useEffect(() => {
-    // 1. First, pull Cart from local storage safely
+    // 1. Pull Cart from local storage safely
     const savedCart = localStorage.getItem('ummart-cart');
     if (savedCart) setCart(JSON.parse(savedCart));
 
     // 2. Load Supabase Data (Products & Seller Profile)
     const loadDatabase = async () => {
-        
         // A. Load Products
         const { data: productsData, error: productsError } = await supabase
             .from('products')
@@ -105,18 +104,16 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             if (insertedData) setAllProducts(insertedData);
         }
 
-        // B. Load Seller Profile from Database (THIS WAS MISSING BEFORE!)
-        const { data: profileData, error: profileError } = await supabase
+        // B. Load Seller Profile from Database
+        const { data: profileData } = await supabase
             .from('seller_profile')
             .select('*')
             .eq('id', 1)
             .single();
 
         if (profileData) {
-            // DB is the absolute source of truth! Everyone sees this!
             setSellerProfile(profileData); 
         } else {
-            // Fallback to local storage ONLY if DB fails or is empty
             const savedProfile = localStorage.getItem('ummart-seller-profile');
             if (savedProfile) setSellerProfile(JSON.parse(savedProfile));
         }
@@ -130,7 +127,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // --- 2. ALWAYS SAVE TO LOCAL STORAGE (IF UNLOCKED) ---
   useEffect(() => {
-    // Only save if the initial load is 100% finished!
     if (isInitialized) {
       localStorage.setItem('ummart-cart', JSON.stringify(cart));
       localStorage.setItem('ummart-seller-profile', JSON.stringify(sellerProfile));
@@ -176,18 +172,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       toast.success('Produk telah dibuang.');
   };
 
-  // --- SYNC SELLER PROFILE GLOBALLY ---
   const updateSellerProfile = async (newDetails: Partial<SellerProfile>) => {
       const oldShopName = sellerProfile.shopName;
       const newShopName = newDetails.shopName;
 
-      // 1. Update UI Immediately
       setSellerProfile((prev) => ({ ...prev, ...newDetails }));
-
-      // 2. Push Update to Database! (Everyone sees this now)
       await supabase.from('seller_profile').update(newDetails).eq('id', 1);
 
-      // 3. Update related products' seller names
       if (newShopName && newShopName !== oldShopName) {
           setAllProducts((prev) => prev.map(p => p.seller === oldShopName ? { ...p, seller: newShopName } : p));
           await supabase.from('products').update({ seller: newShopName }).eq('seller', oldShopName);
@@ -204,19 +195,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }}>
       {children}
       
-      {/* 🌟 FIX: Mobile Responsive Toaster Notification 🌟 */}
+      {/* 🌟 PERFECT MOBILE TOASTER OVERRIDE 🌟 */}
       <Toaster 
         position="bottom-center"
+        containerClassName="!bottom-24 md:!bottom-8 z-[9999]" // This elevates the entire wrapper container on mobile
         toastOptions={{
-          className: 'w-[90vw] md:w-auto max-w-[400px] text-sm md:text-base mb-20 md:mb-6',
+          className: '!w-[90vw] md:!w-auto !max-w-[400px] !text-sm md:!text-base font-semibold',
           style: {
             borderRadius: '16px',
             background: '#ffffff',
             color: '#0F6937',
-            fontWeight: 'bold',
-            border: '2px solid #E5E7EB',
+            border: '1px solid #E5E7EB',
             boxShadow: '0 10px 25px -5px rgba(15, 105, 55, 0.15)',
-            zIndex: 9999, // Ensures it sits above the fixed background pattern
           },
           success: {
             iconTheme: {
