@@ -195,10 +195,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }}>
       {children}
       
-      {/* 🌟 PERFECT MOBILE TOASTER OVERRIDE 🌟 */}
+      {/* 🌟 HIDE TOASTER ON MOBILE, SHOW ON DESKTOP 🌟 */}
       <Toaster 
         position="bottom-center"
-        containerClassName="!bottom-24 md:!bottom-8 z-[9999]" // This elevates the entire wrapper container on mobile
+        containerClassName="!hidden md:!block md:!bottom-8 z-[9999]" // <-- Added !hidden md:!block
         toastOptions={{
           className: '!w-[90vw] md:!w-auto !max-w-[400px] !text-sm md:!text-base font-semibold',
           style: {
